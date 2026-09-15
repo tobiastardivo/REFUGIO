@@ -1,0 +1,14 @@
+{
+    "version": 4,
+    "configurations": [
+        {
+            "name": "MinGW-w64",
+            "includePath": ["${workspaceFolder}/**"],
+            "defines": ["_WIN32"],
+            "compilerPath": "C:\\Program Files\\JetBrains\\CLion 2026.1\\bin\\mingw\\bin\\g++.exe",
+            "cStandard": "c17",
+            "cppStandard": "c++17",
+            "intelliSenseMode": "windows-gcc-x64"
+        }
+    ]
+}

@@ -1,0 +1,8 @@
+# Archivos generados al compilar
+*.exe
+*.o
+
+# Archivos temporales de PSeInt
+temp_*.psc
+temp_*.psd
+temp_*.out

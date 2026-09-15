@@ -1,0 +1,54 @@
+{
+    "version": "2.0.0",
+    "tasks": [
+        {
+            "label": "Compilar refugio (g++)",
+            "type": "shell",
+            "command": "C:\\Program Files\\JetBrains\\CLion 2026.1\\bin\\mingw\\bin\\g++.exe",
+            "args": [
+                "-std=c++17",
+                "-Wall",
+                "-Wextra",
+                "-g",
+                "-o",
+                "refugio.exe",
+                "main.cpp",
+                "MenuConsola.cpp",
+                "Animal.cpp",
+                "Perro.cpp",
+                "Gato.cpp",
+                "Adoptante.cpp",
+                "SolicitudAdopcion.cpp",
+                "Refugio.cpp",
+                "Utilidades.cpp"
+            ],
+            "options": {
+                "cwd": "${workspaceFolder}",
+                "env": {
+                    "PATH": "C:\\Program Files\\JetBrains\\CLion 2026.1\\bin\\mingw\\bin;${env:PATH}"
+                }
+            },
+            "problemMatcher": ["$gcc"],
+            "group": {
+                "kind": "build",
+                "isDefault": true
+            },
+            "detail": "Compila todos los .cpp y genera refugio.exe"
+        },
+        {
+            "label": "Compilar y ejecutar",
+            "type": "shell",
+            "command": ".\\refugio.exe",
+            "options": {
+                "cwd": "${workspaceFolder}"
+            },
+            "dependsOn": "Compilar refugio (g++)",
+            "problemMatcher": [],
+            "presentation": {
+                "reveal": "always",
+                "panel": "dedicated",
+                "clear": true
+            }
+        }
+    ]
+}
