@@ -1,3 +1,21 @@
+// ===================================================================
+// MenuConsola.cpp - Toda la interfaz de consola del sistema.
+//
+// Separacion de responsabilidades del TP:
+//   - main.cpp  : crea el menu y lo ejecuta. Nada mas.
+//   - MenuConsola : habla con el usuario (pide datos, muestra resultados,
+//                   captura las excepciones y las traduce a mensajes).
+//   - Refugio     : aplica las reglas del negocio y lanza las excepciones.
+// Gracias a eso el modelo no tiene ni un cout adentro y podria usarse
+// con otra interfaz sin tocarle una linea.
+//
+// Patron que repiten todas las opciones del menu: piden los datos con
+// las funciones validadoras de Utilidades, llaman a UN metodo del
+// Refugio y avisan que salio bien. Ninguna valida reglas por su cuenta:
+// si algo esta mal, el Refugio lanza y el try/catch de ejecutar() se
+// encarga. Por eso las funciones de aca no tienen if de control.
+// ===================================================================
+
 #include "MenuConsola.h"
 #include "Perro.h"
 #include "Gato.h"
@@ -27,6 +45,15 @@ MenuConsola::~MenuConsola() {}
 // BUCLE PRINCIPAL
 // ===================================================================
 
+// --- ejecutar(): el bucle del menu ---
+// Es un  do...while  y no un  while  porque el menu tiene que mostrarse
+// por lo menos una vez antes de poder preguntar si hay que salir.
+// Cada vuelta hace siempre lo mismo: limpiar, dibujar, leer la opcion
+// (leerEntero ya garantiza que sea un numero entre 0 y 14), ejecutarla
+// dentro del try y pausar para que se alcance a leer el resultado.
+// La linea final imprime el contador de animales justo antes de que el
+// menu se destruya, para poder compararla con la que imprime main()
+// despues de la destruccion: es la prueba de que no quedan fugas.
 void MenuConsola::ejecutar() {
     int opcion;
     do {
@@ -104,6 +131,11 @@ void MenuConsola::informarMemoriaLiberada() {
 // MENU
 // ===================================================================
 
+// --- mostrarMenu(): dibuja la pantalla principal ---
+// Solo imprime: por eso es const, no toca ningun dato. Ademas de las 15
+// opciones muestra un resumen en vivo (animales, disponibles, adoptantes
+// y solicitudes) que se recalcula en cada vuelta del bucle, asi el efecto
+// de la operacion anterior se ve enseguida sin tener que ir al informe.
 void MenuConsola::mostrarMenu() const {
     linea('=');
     cout << "   SISTEMA DE GESTION DE REFUGIO - " << refugio.getNombre() << endl;
@@ -135,6 +167,11 @@ void MenuConsola::mostrarMenu() const {
 // OPCIONES DEL MENU
 // ===================================================================
 
+// --- Opcion 1: registrar un perro ---
+// Pide los datos con las funciones validadoras (cada una ya se encarga de
+// insistir si el dato esta mal) y arma el Perro. El tamanio se elige por
+// numero en vez de escribirlo, para que no entren variantes como "grande",
+// "GRANDE" o "grnde" que despues ensucien los listados.
 void MenuConsola::registrarPerro() {
     cout << "--- Registrar perro ---" << endl;
     int id        = leerEntero("ID: ", 1, 99999);
@@ -153,6 +190,11 @@ void MenuConsola::registrarPerro() {
     cout << "Perro registrado correctamente." << endl;
 }
 
+// --- Opcion 2: registrar un gato ---
+// Igual que registrarPerro() pero con los atributos propios del gato.
+// El dato de interior/exterior es un bool, asi que se pide con leerSiNo(),
+// que acepta SI/S/NO/N y devuelve directamente true o false.
+// Tambien se crea con new: la memoria pasa a ser del Refugio.
 void MenuConsola::registrarGato() {
     cout << "--- Registrar gato ---" << endl;
     int id        = leerEntero("ID: ", 1, 99999);
@@ -166,6 +208,11 @@ void MenuConsola::registrarGato() {
     cout << "Gato registrado correctamente." << endl;
 }
 
+// --- Opcion 5: registrar un adoptante ---
+// Aca no aparece  new  por ningun lado: el Adoptante se crea como objeto
+// temporal en la misma llamada y la coleccion del Refugio se guarda una
+// copia. Al terminar la funcion el temporal se destruye solo, sin que
+// nadie tenga que acordarse de liberarlo.
 void MenuConsola::registrarAdoptante() {
     cout << "--- Registrar adoptante ---" << endl;
     int id           = leerEntero("ID: ", 1, 99999);
@@ -177,6 +224,13 @@ void MenuConsola::registrarAdoptante() {
     cout << "Adoptante registrado correctamente." << endl;
 }
 
+// --- Opcion 6: buscar un animal por ID ---
+// Es la opcion que muestra dos operadores sobrecargados trabajando:
+//   refugio(id)   -> operator() del Refugio, busca por ID;
+//   !(*encontrado) -> operator! del Animal, "no esta disponible".
+// No hace falta comprobar que el puntero no sea nulo: si el ID no existe,
+// el operator() lanza NoEncontradoException y esta funcion ni siquiera
+// llega a la linea siguiente. Es const porque solo consulta.
 void MenuConsola::buscarAnimalPorId() const {
     cout << "--- Buscar animal por ID ---" << endl;
     int id = leerEntero("ID a buscar: ", 1, 99999);
@@ -192,6 +246,14 @@ void MenuConsola::buscarAnimalPorId() const {
         cout << "Este animal esta disponible para adopcion." << endl;
 }
 
+// --- Opcion 7: crear una solicitud de adopcion ---
+// Los dos chequeos del principio no son reglas del negocio, son cortesia
+// con el usuario: sin ellos igual funcionaria, pero le haria escribir dos
+// IDs para recien despues avisarle que no habia con que trabajar.
+// Despues de crear la solicitud ofrece confirmarla en el acto, que es el
+// caso mas comun (la persona ya esta ahi). Si dice que no, el tramite
+// queda PENDIENTE y el animal reservado, listo para cerrarse con la
+// opcion 8 o para soltarse con la 9.
 void MenuConsola::crearSolicitud() {
     cout << "--- Nueva solicitud de adopcion ---" << endl;
     if (refugio.contarDisponibles() == 0)
@@ -214,6 +276,10 @@ void MenuConsola::crearSolicitud() {
     }
 }
 
+// --- Opcion 8: confirmar una solicitud ---
+// Lista primero las solicitudes con la funcion generica para que el
+// usuario vea los numeros disponibles y no tenga que acordarselos.
+// La validacion de que exista y siga PENDIENTE la hace el Refugio.
 void MenuConsola::confirmarSolicitud() {
     cout << "--- Confirmar solicitud ---" << endl;
     mostrarColeccion(refugio.getSolicitudes());
@@ -222,6 +288,9 @@ void MenuConsola::confirmarSolicitud() {
     cout << "Solicitud CONFIRMADA. El animal quedo ADOPTADO." << endl;
 }
 
+// --- Opcion 9: cancelar una solicitud ---
+// Espejo de la opcion 8: mismo listado previo, misma delegacion, pero el
+// animal en vez de quedar ADOPTADO vuelve a estar DISPONIBLE.
 void MenuConsola::cancelarSolicitud() {
     cout << "--- Cancelar solicitud ---" << endl;
     mostrarColeccion(refugio.getSolicitudes());
@@ -230,6 +299,11 @@ void MenuConsola::cancelarSolicitud() {
     cout << "Solicitud CANCELADA. El animal vuelve a estar DISPONIBLE." << endl;
 }
 
+// --- Opcion 10: devolver un animal al refugio ---
+// Se pide el ID del animal y no el de la solicitud, porque quien devuelve
+// trae al animal y no se acuerda del numero de tramite. El Refugio se
+// ocupa del resto: rechaza los que ya estaban disponibles y cancela sola
+// cualquier solicitud que hubiera quedado pendiente por ese animal.
 void MenuConsola::devolverAnimal() {
     cout << "--- Devolver animal al refugio ---" << endl;
     int id = leerEntero("ID del animal: ", 1, 99999);
@@ -237,7 +311,11 @@ void MenuConsola::devolverAnimal() {
     cout << "El animal volvio al estado DISPONIBLE." << endl;
 }
 
-// Muestra las dos colecciones usando la MISMA funcion generica (Fase 5)
+// --- Opcion 11: ver adoptantes y solicitudes ---
+// Es la demostracion mas directa de la FUNCION GENERICA de la Fase 5: la
+// misma linea de codigo lista dos tipos de datos que no tienen nada que
+// ver entre si. El compilador genera una version de mostrarColeccion()
+// por cada tipo usado, y lo unico que les exige es tener mostrarInfo().
 void MenuConsola::verAdoptantesYSolicitudes() const {
     cout << "--- Adoptantes registrados ---" << endl;
     mostrarColeccion(refugio.getAdoptantes());       // T = Adoptante
@@ -251,6 +329,18 @@ void MenuConsola::verAdoptantesYSolicitudes() const {
 // copia profunda, liberacion de memoria, operadores y excepciones.
 // ===================================================================
 
+// --- Opcion 14: bateria de pruebas ---
+// Ejecuta en orden las cuatro demostraciones que pide la consigna y va
+// imprimiendo el resultado de cada una, para poder mostrarlas en la
+// defensa sin tener que preparar nada:
+//   1) recorrido con aritmetica de punteros (Fase 2);
+//   2) los operadores [] , () , == y ! (Fase 3);
+//   3) la copia profunda, comparando direcciones de memoria y verificando
+//      que al modificar la copia el original no se entere (Fases 2 y 3);
+//   4) tres excepciones provocadas a proposito y capturadas (Fase 5).
+// Las excepciones de la prueba 4 se atrapan aca mismo, cada una en su
+// try, en vez de dejarlas subir al try general de ejecutar(): si subieran,
+// la primera cortaria la funcion y las otras dos no llegarian a probarse.
 void MenuConsola::pruebasDeIntegridad() {
     if (refugio.getCantidadAnimales() == 0)
         throw DatoInvalidoException("cargue al menos un animal antes de probar.");

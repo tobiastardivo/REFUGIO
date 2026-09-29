@@ -53,8 +53,8 @@ public:
     Refugio& operator=(const Refugio& otro);     // asignacion con copia profunda
     ~Refugio();
 
-    std::string getNombre() const;
-    void setNombre(const std::string& nuevoNombre);
+    std::string getNombre() const;                    // lo muestra el encabezado del menu
+    void setNombre(const std::string& nuevoNombre);   // lo usa la prueba de copia profunda
 
     // --- Altas ---
     // agregarAnimal recibe un puntero ya creado con new y se queda con la
@@ -64,30 +64,40 @@ public:
     void registrarAdoptante(const Adoptante& nuevo);
 
     // --- Consultas ---
+    // Los contadores alimentan el resumen que el menu muestra en cada vuelta.
     int getCantidadAnimales() const;
     int getCantidadAdoptantes() const;
     int getCantidadSolicitudes() const;
-    int contarDisponibles() const;
+    int contarDisponibles() const;             // se recalcula, no se guarda
 
+    // Devuelven REFERENCIA CONSTANTE: el menu las puede leer y listar,
+    // pero no modificarlas por fuera de las reglas del Refugio.
     const Coleccion<Adoptante>& getAdoptantes() const;
     const Coleccion<SolicitudAdopcion>& getSolicitudes() const;
 
+    // --- Informes por pantalla ---
     void listarAnimales(bool soloDisponibles) const;   // recorrido polimorfico
     void listarConAritmeticaDePunteros() const;        // Fase 2: recorrido con punteros
-    void mostrarHistorialAdopciones() const;
-    void mostrarEstadisticas() const;
+    void mostrarHistorialAdopciones() const;           // solo las solicitudes CONFIRMADAS
+    void mostrarEstadisticas() const;                  // totales + miembros estaticos
 
     // --- Fase 3: sobrecarga de operadores ---
     Animal& operator[](int indice) const;   // acceso POR POSICION (lanza IndiceInvalido)
     Animal* operator()(int id) const;       // busqueda POR ID (lanza NoEncontrado)
 
     // --- Proceso de adopcion ---
+    // Las cuatro validan y lanzan excepcion si la operacion no corresponde;
+    // ninguna imprime nada: los mensajes son cosa de la interfaz.
+    //   PENDIENTE --confirmar--> CONFIRMADA  (el animal queda ADOPTADO)
+    //   PENDIENTE --cancelar---> CANCELADA   (el animal vuelve DISPONIBLE)
     int crearSolicitud(int idAdoptante, int idAnimal);  // devuelve el N de solicitud
-    void confirmarSolicitud(int idSolicitud);
-    void cancelarSolicitud(int idSolicitud);
-    void devolverAnimal(int idAnimal);
+    void confirmarSolicitud(int idSolicitud);           // cierra la adopcion
+    void cancelarSolicitud(int idSolicitud);            // libera al animal reservado
+    void devolverAnimal(int idAnimal);                  // el animal regresa al refugio
 
     // --- Datos de prueba ---
+    // La llama el constructor de MenuConsola para que el sistema arranque
+    // con animales y adoptantes cargados.
     void cargarDatosDePrueba();
 };
 

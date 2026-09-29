@@ -21,22 +21,26 @@ private:
     Refugio refugio;                 // composicion: el menu es duenio del refugio
 
     // --- Presentacion ---
-    void mostrarMenu() const;
+    void mostrarMenu() const;        // dibuja las opciones + el resumen de estado
 
     // --- Despacho: manda a ejecutar la opcion elegida ---
-    void ejecutarOpcion(int opcion);
+    void ejecutarOpcion(int opcion); // un switch que solo decide a quien llamar
 
     // --- Una funcion por cada opcion del menu ---
-    void registrarPerro();
-    void registrarGato();
-    void registrarAdoptante();
-    void buscarAnimalPorId() const;
-    void crearSolicitud();
-    void confirmarSolicitud();
-    void cancelarSolicitud();
-    void devolverAnimal();
-    void verAdoptantesYSolicitudes() const;
-    void pruebasDeIntegridad();
+    // Estan en el mismo orden en que aparecen en pantalla. Las opciones 3,
+    // 4, 12 y 13 no figuran aca porque se resuelven con un unico llamado
+    // directo al Refugio y no necesitan pedir ningun dato.
+    // Son const las que solo consultan y no modifican nada.
+    void registrarPerro();                     // 1  - alta de un perro
+    void registrarGato();                      // 2  - alta de un gato
+    void registrarAdoptante();                 // 5  - alta de una persona
+    void buscarAnimalPorId() const;            // 6  - usa los operadores () y !
+    void crearSolicitud();                     // 7  - inicia un tramite
+    void confirmarSolicitud();                 // 8  - cierra el tramite: ADOPTADO
+    void cancelarSolicitud();                  // 9  - da de baja: vuelve DISPONIBLE
+    void devolverAnimal();                     // 10 - el animal regresa al refugio
+    void verAdoptantesYSolicitudes() const;    // 11 - usa la funcion generica
+    void pruebasDeIntegridad();                // 14 - bateria de pruebas del TP
 
 public:
     explicit MenuConsola(const std::string& nombreRefugio = "Refugio Huellitas");
