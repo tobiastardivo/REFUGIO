@@ -55,7 +55,7 @@ frágil ante cualquier cambio.
 | Archivo | Contenido |
 |---|---|
 | `main.cpp` | **Sólo el punto de entrada:** crea el menú y lo ejecuta. Sin lógica. |
-| `MenuConsola.h/.cpp` | Interfaz de consola: bucle del menú, despacho de opciones, captura de excepciones y lectura de datos. |
+| `MenuConsola.h/.cpp` | Interfaz de consola: bucle del menú, despacho de opciones, captura de excepciones, lectura de datos y **selección por lista** (para que no haya que escribir IDs). |
 | `Animal.h/.cpp` | Clase **abstracta** base. Estado de adopción, operadores `==`, `!=`, `!`. |
 | `Perro.h/.cpp` | Hereda de `Animal`. Agrega raza y tamaño. |
 | `Gato.h/.cpp` | Hereda de `Animal`. Agrega color de pelaje e interior/exterior. |
@@ -111,13 +111,36 @@ El proyecto compila **sin warnings** con `-Wall -Wextra`.
  3. Listar todos los animales       10. Devolver animal al refugio
  4. Listar animales disponibles     11. Ver adoptantes y solicitudes
  5. Registrar adoptante             12. Historial de adopciones
- 6. Buscar animal por ID            13. Informes y estadísticas
+ 6. Ver ficha de un animal          13. Informes y estadísticas
  7. Crear solicitud de adopción     14. Pruebas (copia profunda, operadores, excepciones)
                                      0. Salir
 ```
 
 El programa arranca con datos de prueba cargados (2 perros, 2 gatos y 2 adoptantes)
 para poder probar el circuito completo sin tener que cargar todo a mano.
+
+### El usuario nunca escribe un ID
+
+Los números internos (ID de animal, de adoptante y número de solicitud) siguen siendo la
+clave del modelo, porque son lo que usan `Refugio::operator()`, los `operator==` de cada
+clase y las solicitudes. Pero **no se piden nunca por teclado**: quien usa el programa no
+tiene por qué conocerlos ni acordarse de ellos. Se resuelve de dos maneras:
+
+| Situación | Cómo se resuelve |
+|---|---|
+| **Altas** (opciones 1, 2 y 5) | El número lo pone el refugio con `nuevoIdAnimal()` / `nuevoIdAdoptante()`. Al terminar se avisa con qué número quedó registrado. Los animales se numeran desde 1 y los adoptantes desde 100, para no confundirlos en pantalla. |
+| **Elegir algo que ya existe** (opciones 6 a 10) | Se muestra la **lista numerada de 1 a N** y se elige por posición. `MenuConsola::elegirAnimal()`, `elegirAdoptante()` y `elegirSolicitudPendiente()` traducen ese número de lista al ID interno antes de llamar al `Refugio`. |
+
+Cada lista ofrece **sólo lo que tiene sentido elegir** en ese momento: para adoptar
+aparecen únicamente los animales `DISPONIBLE`, para devolver sólo los que están reservados
+o adoptados, y para confirmar o cancelar sólo las solicitudes `PENDIENTE`. Si no hay nada
+que ofrecer, la lista avisa el motivo antes de pedir cualquier otro dato.
+
+Como `leerEntero()` ya acota la respuesta al rango `1..N`, el usuario **no puede elegir
+algo que no exista**. Las validaciones del modelo (`IdRepetidoException`,
+`NoEncontradoException`, `AnimalNoDisponibleException`) siguen estando dentro de `Refugio`
+como reglas del negocio, pero la interfaz ya no las puede provocar: ahora sólo se ven en
+las pruebas de la opción 14, que las fuerzan a propósito.
 
 ### Circuito de una adopción
 
@@ -159,6 +182,12 @@ para poder probar el circuito completo sin tener que cargar todo a mano.
   donde va un número es un error esperable de la interfaz: se vuelve a pedir el dato.
   Las excepciones se reservan para errores del modelo (ID repetido, índice fuera de
   rango, animal no disponible, no encontrado).
+- **Los IDs son un dato interno, no una pregunta al usuario.** La interfaz elige por
+  lista y el modelo sigue trabajando con IDs (ver *El usuario nunca escribe un ID* en la
+  sección 5). La ventaja de haberlo hecho así, y no cambiando el modelo, es que `Refugio`
+  no se enteró del cambio: se le agregaron dos numeradores y sigue recibiendo IDs en todos
+  sus métodos, que son los mismos de antes. Toda la traducción "número de lista → ID" vive
+  en `MenuConsola`, que es la clase que habla con el usuario.
 
 ## 7. Documentación de la memoria dinámica (quién reserva y quién libera)
 
@@ -236,43 +265,48 @@ independientes. Esto se ve en pantalla en la opción 13 (*Informes y estadístic
 
 | # | Pasos | Resultado esperado |
 |---|---|---|
-| 1 | Opción 1 → registrar un perro con ID 1 | Error: *El ID 1 ya está registrado* |
-| 2 | Opción 1 → ID 5, edad "abc" | Error de la interfaz: vuelve a pedir la edad |
-| 3 | Opción 7 → adoptante 100, animal 1, responder NO | Solicitud PENDIENTE y animal EN_PROCESO |
-| 4 | Opción 7 → otra vez el animal 1 | Error: *El animal con ID 1 no está disponible (EN_PROCESO)* |
-| 5 | Opción 8 → confirmar esa solicitud | Solicitud CONFIRMADA y animal ADOPTADO |
-| 6 | Opción 8 → confirmar la misma solicitud otra vez | Error: *la solicitud N 1 ya fue CONFIRMADA* |
+| 1 | Opción 1 → registrar un perro | No pide ningún ID: avisa *quedó con el número 5* |
+| 2 | Opción 1 → escribir "abc" en la edad | Error de la interfaz: vuelve a pedir la edad |
+| 3 | Opción 7 → elegir el adoptante 1 y el animal 1, responder NO | Solicitud PENDIENTE y animal EN_PROCESO |
+| 4 | Opción 7 otra vez | Ese animal **ya no aparece** en la lista: está reservado |
+| 5 | Opción 8 → confirmar la solicitud de la lista | Solicitud CONFIRMADA y animal ADOPTADO |
+| 6 | Opción 8 otra vez | Error: *no hay solicitudes pendientes* (la confirmada no se ofrece) |
 | 7 | Opción 12 | El historial muestra la adopción con el nombre del animal |
-| 8 | Opción 10 → devolver el animal 1 | Vuelve a DISPONIBLE |
-| 9 | Opción 7 → adoptante inexistente (999) | Error: *No existe un adoptante con ID 999* |
-| 10 | Opción 0 | *Animales en memoria DESPUÉS de destruir el refugio: 0* |
+| 8 | Opción 10 → elegir el animal adoptado | Vuelve a DISPONIBLE |
+| 9 | Opción 10 otra vez | Error: *no hay animales reservados ni adoptados* |
+| 10 | Opción 6 → elegir cualquier animal | Muestra la ficha y si está disponible o no |
+| 11 | Opción 0 | *Animales en memoria DESPUÉS de destruir el refugio: 0* |
 
 ## 10. Diagramas de flujo
 
 Los diagramas de flujo están en **`DIAGRAMAS.md`** (fuente) y en **`DIAGRAMAS.html`**
 (ya dibujados, se abre con doble clic en cualquier navegador y no necesita internet).
 
-Hay 17 diagramas en total, uno por cada opción del sistema, como pide la consigna:
+Hay 18 diagramas en total: uno por cada opción del sistema, como pide la consigna, más el
+del programa principal y los de las dos subrutinas auxiliares.
 
 | Diagrama | Contenido |
 |---|---|
 | Programa principal | Bucle del menú, `switch` y bloque `try` / `catch` |
 | Subrutina auxiliar | `leerEntero()`: validación de tipo y de rango |
-| Opciones 1 y 2 | Registrar perro / registrar gato (incluye el control de ID repetido y la liberación de memoria) |
+| Subrutina auxiliar | Elegir un elemento de una lista: lo que reemplazó a escribir el ID |
+| Opciones 1 y 2 | Registrar perro / registrar gato (numerador automático y liberación de memoria) |
 | Opciones 3 y 4 | Listar todos / listar sólo los disponibles |
 | Opción 5 | Registrar adoptante |
-| Opción 6 | Buscar animal por ID (operadores `()` y `!`) |
-| Opción 7 | Crear solicitud de adopción (proceso completo con todas sus validaciones) |
+| Opción 6 | Ver ficha de un animal (operadores `()` y `!`) |
+| Opción 7 | Crear solicitud de adopción (proceso completo) |
 | Opciones 8, 9 y 10 | Confirmar / cancelar solicitud y devolver animal |
 | Opciones 11, 12 y 13 | Listados con la función genérica, historial e informes |
 | Opción 14 | Pruebas de copia profunda, operadores y excepciones |
 | Opción 0 | Salida del sistema y liberación de la memoria |
 
 El pseudocódigo está en `SistemaAdopcionRefugio.psc` (PSeInt) y acompaña a los diagramas:
-tiene el bucle del menú con las 14 opciones, el proceso de adopción completo con todas sus
-validaciones y la función de lectura validada. Las funciones que acceden a los datos están
-simuladas, porque en el programa real son métodos de la clase `Refugio` que trabajan sobre
-el catálogo con memoria dinámica, algo que no se puede representar en pseudocódigo.
+tiene el bucle del menú con las 14 opciones, el proceso de adopción completo, la función de
+lectura validada y las tres rutinas de selección por lista (`ElegirAnimal`,
+`ElegirAdoptante` y `ElegirSolicitudPendiente`), así que tampoco ahí se escribe un ID. Las
+funciones que acceden a los datos están simuladas, porque en el programa real son métodos
+de la clase `Refugio` que trabajan sobre el catálogo con memoria dinámica, algo que no se
+puede representar en pseudocódigo.
 
 ## 11. Pendiente de la entrega
 

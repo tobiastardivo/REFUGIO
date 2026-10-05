@@ -62,8 +62,16 @@
 <p><strong>Trabajo Práctico Integrador — Programación Orientada a Objetos 2026 — Lic. Diego L. Mattana</strong>
 Sistema de Gestión de un Refugio de Animales (C++17)</p>
 <p>Este documento contiene <strong>un diagrama de flujo por cada opción del menú</strong>, como pide la
-consigna en los requisitos de entrega, más el diagrama del programa principal y el de la
-rutina de lectura validada que usan todas las opciones.</p>
+consigna en los requisitos de entrega, más el diagrama del programa principal y los de las
+dos rutinas auxiliares que usan todas las opciones: la lectura validada por teclado y la
+selección de un elemento de una lista.</p>
+<blockquote>
+<p><strong>El usuario nunca escribe un ID.</strong> Los números internos (ID de animal, de adoptante y
+de solicitud) existen porque son la clave del modelo, pero no se piden por teclado:
+en las altas los pone el refugio y, cuando hay que elegir algo que ya existe, se muestra
+la lista numerada de 1 a N y se elige por posición. Por eso en los diagramas no aparece
+ningún &quot;leer el ID&quot;: aparece <em>pedir el próximo número al refugio</em> o <em>elegir de la lista</em>.</p>
+</blockquote>
 <p>Los diagramas están escritos en <strong>Mermaid</strong>. Se pueden ver de tres formas:</p>
 <ol>
 <li>Abriendo <code>DIAGRAMAS.html</code> en cualquier navegador (no necesita internet).</li>
@@ -165,10 +173,39 @@ hace esto:</p>
 ya está resuelta acá. Lo mismo hacen <code>leerTexto()</code> y <code>leerSiNo()</code>.</p>
 </blockquote>
 <hr>
+<h2>Subrutina auxiliar — Elegir un elemento de una lista</h2>
+<p>Es la rutina que reemplazó a &quot;escribir el ID&quot;. Las opciones 6 a 10 la usan a través de
+<code>elegirAnimal()</code>, <code>elegirAdoptante()</code> y <code>elegirSolicitudPendiente()</code>, que trabajan todas
+igual: muestran la lista numerada, leen <strong>un número de esa lista</strong> y devuelven el ID
+interno del elemento elegido. En los diagramas de esas opciones aparece como un solo
+paralelogramo de &quot;Elegir ... de la lista&quot;.</p>
+<div class="diagrama"><pre class="mermaid">flowchart TD
+    INI(["Elegir de la lista: recibe el titulo&lt;br/&gt;y el filtro que se quiere ofrecer"])
+    CUENTA["Contar cuantos elementos&lt;br/&gt;pasan el filtro"]
+    HAY{"Hay al menos uno?"}
+    THROW[["throw DatoInvalidoException&lt;br/&gt;con el motivo: no hay animales&lt;br/&gt;disponibles, no hay adoptantes, etc."]]
+    LISTA[/"Mostrar la lista numerada de 1 a N&lt;br/&gt;con el nombre y el estado de cada uno"/]
+    LEE[/"Leer un numero validado entre 1 y N&lt;br/&gt;con leerEntero: no se puede elegir&lt;br/&gt;nada que no este en la lista"/]
+    TRAD["Recorrer otra vez contando los que pasan&lt;br/&gt;el filtro hasta llegar al elegido"]
+    OK(["Devolver el ID interno de ese elemento"])
+
+    INI --&gt; CUENTA --&gt; HAY
+    HAY --&gt;|"No"| THROW
+    HAY --&gt;|"Si"| LISTA --&gt; LEE --&gt; TRAD --&gt; OK</pre></div>
+<blockquote>
+<p><strong>Por qué hace falta el último paso:</strong> el número que ve el usuario <strong>no</strong> es la posición
+en el catálogo. Si se están ofreciendo sólo los animales disponibles, el <code>1</code> de la lista
+puede ser el animal que está guardado en la posición 3. Por eso se vuelve a recorrer
+aplicando el mismo filtro hasta llegar al que eligió. En <code>elegirAdoptante()</code> ese paso no
+existe, porque ahí no hay filtro y el número de lista coincide con la posición.</p>
+<p>Como <code>leerEntero()</code> ya acota la respuesta al rango <code>1..N</code>, <strong>ninguna de estas rutinas
+necesita validar la elección</strong>: no se puede elegir algo que no exista.</p>
+</blockquote>
+<hr>
 <h2>Opción 1 — Registrar perro</h2>
 <div class="diagrama"><pre class="mermaid">flowchart TD
     INI(["Opcion 1: Registrar perro"])
-    ID[/"Leer ID validado entre 1 y 99999"/]
+    ID["Pedir al refugio el proximo numero libre&lt;br/&gt;nuevoIdAnimal: el usuario no lo escribe"]
     NOM[/"Leer nombre"/]
     EDAD[/"Leer edad validada entre 0 y 30"/]
     SALUD[/"Leer estado de salud"/]
@@ -181,8 +218,8 @@ ya está resuelta acá. Lo mismo hacen <code>leerTexto()</code> y <code>leerSiNo
     THROW[["throw IdRepetidoException"]]
     LLENO{"El catalogo esta lleno?&lt;br/&gt;cantAnimales igual a capacidad"}
     RESIZE["redimensionarCatalogo al doble:&lt;br/&gt;arreglo nuevo, copiar punteros,&lt;br/&gt;liberar el arreglo viejo"]
-    GUARDA["Guardar el puntero en el catalogo&lt;br/&gt;y aumentar cantAnimales"]
-    OK[/"Mostrar: Perro registrado correctamente"/]
+    GUARDA["Guardar el puntero en el catalogo,&lt;br/&gt;aumentar cantAnimales y correr&lt;br/&gt;el numerador al siguiente numero"]
+    OK[/"Mostrar: Perro registrado correctamente&lt;br/&gt;y con que numero quedo"/]
     CATCH[/"El catch del menu muestra el error&lt;br/&gt;y el menu sigue funcionando"/]
     FIN(["Volver al menu"])
 
@@ -196,13 +233,16 @@ ya está resuelta acá. Lo mismo hacen <code>leerTexto()</code> y <code>leerSiNo
 <p><strong>Memoria (Fase 2):</strong> el <code>new</code> se hace en <code>MenuConsola.cpp</code> y la propiedad de ese bloque pasa al
 <code>Refugio</code> apenas se llama a <code>agregarAnimal()</code>. Si el alta se rechaza por ID repetido, el
 propio <code>agregarAnimal()</code> hace el <code>delete</code> <strong>antes</strong> de lanzar la excepción.</p>
+<p><strong>El control de ID repetido ya no se puede disparar desde el menú</strong>, porque el número lo
+pone el propio refugio. Queda igual dentro de <code>agregarAnimal()</code> como red de seguridad del
+modelo, y es la que se prueba a propósito en la opción 14.</p>
 </blockquote>
 <hr>
 <h2>Opción 2 — Registrar gato</h2>
 <p>Mismo circuito que la opción 1, pero con los atributos propios de <code>Gato</code>.</p>
 <div class="diagrama"><pre class="mermaid">flowchart TD
     INI(["Opcion 2: Registrar gato"])
-    ID[/"Leer ID validado entre 1 y 99999"/]
+    ID["Pedir al refugio el proximo numero libre&lt;br/&gt;nuevoIdAnimal: el usuario no lo escribe"]
     NOM[/"Leer nombre"/]
     EDAD[/"Leer edad validada entre 0 y 30"/]
     SALUD[/"Leer estado de salud"/]
@@ -213,7 +253,7 @@ propio <code>agregarAnimal()</code> hace el <code>delete</code> <strong>antes</s
     REP{"Ya existe un animal&lt;br/&gt;con ese ID?"}
     DEL["delete del objeto y&lt;br/&gt;throw IdRepetidoException"]
     GUARDA["Redimensionar si hace falta&lt;br/&gt;y guardar el puntero en el catalogo"]
-    OK[/"Mostrar: Gato registrado correctamente"/]
+    OK[/"Mostrar: Gato registrado correctamente&lt;br/&gt;y con que numero quedo"/]
     CATCH[/"El catch del menu muestra el error"/]
     FIN(["Volver al menu"])
 
@@ -273,7 +313,7 @@ en estado <code>DISPONIBLE</code>.</p>
 <h2>Opción 5 — Registrar adoptante</h2>
 <div class="diagrama"><pre class="mermaid">flowchart TD
     INI(["Opcion 5: Registrar adoptante"])
-    ID[/"Leer ID validado entre 1 y 99999"/]
+    ID["Pedir al refugio el proximo numero libre&lt;br/&gt;nuevoIdAdoptante: arranca en 100"]
     NOM[/"Leer nombre y apellido"/]
     CONT[/"Leer contacto"/]
     VIV[/"Leer tipo de vivienda"/]
@@ -281,7 +321,7 @@ en estado <code>DISPONIBLE</code>.</p>
     REP{"Ya existe un adoptante&lt;br/&gt;con ese ID?"}
     THROW[["throw IdRepetidoException"]]
     AGR["Agregar a la coleccion de adoptantes:&lt;br/&gt;guarda una COPIA y redimensiona&lt;br/&gt;sola si esta llena"]
-    OK[/"Mostrar: Adoptante registrado correctamente"/]
+    OK[/"Mostrar: Adoptante registrado correctamente&lt;br/&gt;y con que numero quedo"/]
     CATCH[/"El catch del menu muestra el error"/]
     FIN(["Volver al menu"])
 
@@ -291,47 +331,44 @@ en estado <code>DISPONIBLE</code>.</p>
 <blockquote>
 <p>A diferencia de los animales, los adoptantes se guardan <strong>por valor</strong> dentro de
 <code>Coleccion&lt;Adoptante&gt;</code>, que administra su propia memoria dinámica.</p>
+<p>Los números de adoptante arrancan en <strong>100</strong> y los de animal en <strong>1</strong>, así en pantalla
+nunca se confunde uno con el otro.</p>
 </blockquote>
 <hr>
-<h2>Opción 6 — Buscar animal por ID</h2>
+<h2>Opción 6 — Ver ficha de un animal</h2>
 <p>Usa dos operadores sobrecargados de la Fase 3: <code>operator()</code> para buscar por ID y el
-operador unario <code>operator!</code> para preguntar si el animal <strong>no</strong> está disponible.</p>
+operador unario <code>operator!</code> para preguntar si el animal <strong>no</strong> está disponible. El ID que
+recibe el <code>operator()</code> sale de la lista, no del teclado.</p>
 <div class="diagrama"><pre class="mermaid">flowchart TD
-    INI(["Opcion 6: Buscar animal por ID"])
-    ID[/"Leer el ID a buscar"/]
-    BUSCA["Buscar con el operador parentesis&lt;br/&gt;sobrecargado del Refugio"]
-    EXISTE{"Se encontro el animal?"}
-    THROW[["throw NoEncontradoException"]]
+    INI(["Opcion 6: Ver ficha de un animal"])
+    ELIGE[/"Elegir un animal de la lista&lt;br/&gt;filtro TODOS: ver la subrutina"/]
+    BUSCA["Buscar ese ID con el operador parentesis&lt;br/&gt;sobrecargado del Refugio"]
     SHOW[/"Mostrar los datos con mostrarInfo"/]
     NOT{"El operador unario ! da verdadero?&lt;br/&gt;es decir: no esta disponible"}
     MSG1[/"Mostrar: este animal NO esta&lt;br/&gt;disponible para adopcion"/]
     MSG2[/"Mostrar: este animal esta&lt;br/&gt;disponible para adopcion"/]
-    CATCH[/"El catch del menu muestra el error"/]
+    CATCH[/"El catch del menu muestra el error&lt;br/&gt;si el refugio esta vacio"/]
     FIN(["Volver al menu"])
 
-    INI --&gt; ID --&gt; BUSCA --&gt; EXISTE
-    EXISTE --&gt;|"No"| THROW --&gt; CATCH --&gt; FIN
-    EXISTE --&gt;|"Si"| SHOW --&gt; NOT
+    INI --&gt; ELIGE
+    ELIGE --&gt;|"no hay animales cargados"| CATCH --&gt; FIN
+    ELIGE --&gt;|"eligio uno"| BUSCA --&gt; SHOW --&gt; NOT
     NOT --&gt;|"Si"| MSG1 --&gt; FIN
     NOT --&gt;|"No"| MSG2 --&gt; FIN</pre></div>
+<blockquote>
+<p>Ya no hace falta el rombo de &quot;¿se encontró el animal?&quot;: el ID viene de la lista que
+armó el propio sistema, así que el animal existe seguro. El <code>NoEncontradoException</code> del
+<code>operator()</code> sigue estando, pero ahora es una red del modelo y no un error esperable de
+la interfaz.</p>
+</blockquote>
 <hr>
 <h2>Opción 7 — Crear solicitud de adopción</h2>
 <p>Es el proceso central del sistema. Reserva el animal (<code>EN_PROCESO</code>) y opcionalmente
 confirma la adopción en el momento.</p>
 <div class="diagrama"><pre class="mermaid">flowchart TD
     INI(["Opcion 7: Crear solicitud de adopcion"])
-    HAYA{"Hay animales disponibles?"}
-    THROW1[["throw DatoInvalidoException:&lt;br/&gt;no hay animales disponibles"]]
-    HAYAD{"Hay adoptantes registrados?"}
-    THROW2[["throw DatoInvalidoException:&lt;br/&gt;no hay adoptantes registrados"]]
-    IDAD[/"Leer el ID del adoptante"/]
-    IDAN[/"Leer el ID del animal"/]
-    EXAD{"Existe el adoptante?"}
-    THROW3[["throw NoEncontradoException:&lt;br/&gt;un adoptante"]]
-    EXAN{"Existe el animal?"}
-    THROW4[["throw NoEncontradoException:&lt;br/&gt;un animal"]]
-    DISP{"El animal esta DISPONIBLE?&lt;br/&gt;se evalua con el operador !"}
-    THROW5[["throw AnimalNoDisponibleException&lt;br/&gt;informa el estado actual"]]
+    ELAD[/"Elegir el adoptante de la lista&lt;br/&gt;Quien quiere adoptar?"/]
+    ELAN[/"Elegir el animal de la lista&lt;br/&gt;filtro DISPONIBLES: A que animal?"/]
     CREA["Crear la solicitud en estado PENDIENTE&lt;br/&gt;y guardarla en la coleccion"]
     RESERVA["Cambiar el estado del animal a EN_PROCESO"]
     MSG[/"Mostrar el numero de solicitud creada"/]
@@ -339,78 +376,73 @@ confirma la adopción en el momento.</p>
     CONFIRMA["Confirmar la solicitud:&lt;br/&gt;solicitud CONFIRMADA y animal ADOPTADO"]
     MSG1[/"Mostrar: adopcion confirmada"/]
     MSG2[/"Mostrar: la solicitud queda PENDIENTE&lt;br/&gt;y el animal sigue reservado"/]
-    CATCH[/"El catch del menu muestra el error"/]
+    CATCH[/"El catch del menu muestra el motivo:&lt;br/&gt;no hay adoptantes o no hay&lt;br/&gt;animales disponibles"/]
     FIN(["Volver al menu"])
 
-    INI --&gt; HAYA
-    HAYA --&gt;|"No"| THROW1 --&gt; CATCH
-    HAYA --&gt;|"Si"| HAYAD
-    HAYAD --&gt;|"No"| THROW2 --&gt; CATCH
-    HAYAD --&gt;|"Si"| IDAD --&gt; IDAN --&gt; EXAD
-    EXAD --&gt;|"No"| THROW3 --&gt; CATCH
-    EXAD --&gt;|"Si"| EXAN
-    EXAN --&gt;|"No"| THROW4 --&gt; CATCH
-    EXAN --&gt;|"Si"| DISP
-    DISP --&gt;|"No"| THROW5 --&gt; CATCH
-    DISP --&gt;|"Si"| CREA --&gt; RESERVA --&gt; MSG --&gt; CONF
+    INI --&gt; ELAD
+    ELAD --&gt;|"no hay adoptantes"| CATCH --&gt; FIN
+    ELAD --&gt;|"eligio uno"| ELAN
+    ELAN --&gt;|"no hay disponibles"| CATCH
+    ELAN --&gt;|"eligio uno"| CREA --&gt; RESERVA --&gt; MSG --&gt; CONF
     CONF --&gt;|"SI"| CONFIRMA --&gt; MSG1 --&gt; FIN
-    CONF --&gt;|"NO"| MSG2 --&gt; FIN
-    CATCH --&gt; FIN</pre></div>
+    CONF --&gt;|"NO"| MSG2 --&gt; FIN</pre></div>
+<blockquote>
+<p><strong>Comparado con la versión anterior este diagrama tiene cinco rombos menos.</strong> Antes había
+que verificar que hubiera animales y adoptantes, leer los dos IDs y después comprobar uno
+por uno que existieran y que el animal estuviera disponible. Ahora:</p>
+<ul>
+<li>los dos avisos de &quot;no hay nada para elegir&quot; los da la propia subrutina de selección;</li>
+<li>&quot;¿existe el adoptante?&quot; y &quot;¿existe el animal?&quot; desaparecieron: los IDs salen de la lista;</li>
+<li>el filtro <code>DISPONIBLES</code> hace que un animal reservado o adoptado <strong>ni siquiera aparezca</strong>,
+así que tampoco hay que preguntar si está disponible.</li>
+</ul>
+<p>Las validaciones siguen existiendo dentro de <code>Refugio::crearSolicitud()</code> (incluido el
+<code>AnimalNoDisponibleException</code>, que usa el operador <code>!</code>), pero como reglas del modelo: la
+interfaz ya no puede provocarlas.</p>
+</blockquote>
 <hr>
 <h2>Opción 8 — Confirmar solicitud</h2>
 <div class="diagrama"><pre class="mermaid">flowchart TD
     INI(["Opcion 8: Confirmar solicitud"])
-    LISTA[/"Mostrar las solicitudes con la&lt;br/&gt;funcion generica mostrarColeccion"/]
-    NRO[/"Leer el numero de solicitud"/]
-    EXISTE{"Existe esa solicitud?"}
-    THROW1[["throw NoEncontradoException:&lt;br/&gt;una solicitud"]]
-    PEND{"La solicitud esta PENDIENTE?"}
-    THROW2[["throw DatoInvalidoException:&lt;br/&gt;la solicitud ya fue&lt;br/&gt;CONFIRMADA o CANCELADA"]]
+    ELIGE[/"Elegir una solicitud de la lista de&lt;br/&gt;PENDIENTES, que se leen en castellano:&lt;br/&gt;Ana Perez quiere adoptar a Rocky"/]
     BUSCA["Buscar el animal de la solicitud&lt;br/&gt;con el operador parentesis"]
     CONF["Marcar la solicitud como CONFIRMADA"]
     ADOPT["Poner el animal en estado ADOPTADO"]
     OK[/"Mostrar: solicitud CONFIRMADA&lt;br/&gt;y animal ADOPTADO"/]
-    CATCH[/"El catch del menu muestra el error"/]
+    CATCH[/"El catch del menu avisa que no hay&lt;br/&gt;solicitudes pendientes"/]
     FIN(["Volver al menu"])
 
-    INI --&gt; LISTA --&gt; NRO --&gt; EXISTE
-    EXISTE --&gt;|"No"| THROW1 --&gt; CATCH --&gt; FIN
-    EXISTE --&gt;|"Si"| PEND
-    PEND --&gt;|"No"| THROW2 --&gt; CATCH
-    PEND --&gt;|"Si"| BUSCA --&gt; CONF --&gt; ADOPT --&gt; OK --&gt; FIN</pre></div>
+    INI --&gt; ELIGE
+    ELIGE --&gt;|"no hay pendientes"| CATCH --&gt; FIN
+    ELIGE --&gt;|"eligio una"| BUSCA --&gt; CONF --&gt; ADOPT --&gt; OK --&gt; FIN</pre></div>
+<blockquote>
+<p><strong>La lista sólo ofrece las PENDIENTES</strong>, que son las únicas que se pueden confirmar.
+Antes se listaban todas y el usuario podía elegir una ya cerrada, para recién entonces
+recibir el error. Los dos rombos que verificaban eso siguen dentro de
+<code>Refugio::confirmarSolicitud()</code>, pero la interfaz ya no los puede disparar.</p>
+</blockquote>
 <hr>
 <h2>Opción 9 — Cancelar solicitud</h2>
 <p>Igual que la opción 8, pero el animal <strong>vuelve a estar disponible</strong> en lugar de quedar
 adoptado.</p>
 <div class="diagrama"><pre class="mermaid">flowchart TD
     INI(["Opcion 9: Cancelar solicitud"])
-    LISTA[/"Mostrar las solicitudes con&lt;br/&gt;la funcion generica"/]
-    NRO[/"Leer el numero de solicitud"/]
-    EXISTE{"Existe esa solicitud?"}
-    THROW1[["throw NoEncontradoException"]]
-    PEND{"La solicitud esta PENDIENTE?"}
-    THROW2[["throw DatoInvalidoException:&lt;br/&gt;la solicitud ya fue&lt;br/&gt;CONFIRMADA o CANCELADA"]]
+    ELIGE[/"Elegir una solicitud de la lista&lt;br/&gt;de PENDIENTES"/]
     BUSCA["Buscar el animal de la solicitud"]
     CANC["Marcar la solicitud como CANCELADA"]
     DISP["El animal vuelve al estado DISPONIBLE"]
     OK[/"Mostrar: solicitud CANCELADA&lt;br/&gt;y animal DISPONIBLE"/]
-    CATCH[/"El catch del menu muestra el error"/]
+    CATCH[/"El catch del menu avisa que no hay&lt;br/&gt;solicitudes pendientes"/]
     FIN(["Volver al menu"])
 
-    INI --&gt; LISTA --&gt; NRO --&gt; EXISTE
-    EXISTE --&gt;|"No"| THROW1 --&gt; CATCH --&gt; FIN
-    EXISTE --&gt;|"Si"| PEND
-    PEND --&gt;|"No"| THROW2 --&gt; CATCH
-    PEND --&gt;|"Si"| BUSCA --&gt; CANC --&gt; DISP --&gt; OK --&gt; FIN</pre></div>
+    INI --&gt; ELIGE
+    ELIGE --&gt;|"no hay pendientes"| CATCH --&gt; FIN
+    ELIGE --&gt;|"eligio una"| BUSCA --&gt; CANC --&gt; DISP --&gt; OK --&gt; FIN</pre></div>
 <hr>
 <h2>Opción 10 — Devolver animal al refugio</h2>
 <div class="diagrama"><pre class="mermaid">flowchart TD
     INI(["Opcion 10: Devolver animal al refugio"])
-    ID[/"Leer el ID del animal"/]
-    EXISTE{"Existe el animal?"}
-    THROW1[["throw NoEncontradoException"]]
-    YADISP{"El animal ya figura&lt;br/&gt;como DISPONIBLE?"}
-    THROW2[["throw DatoInvalidoException:&lt;br/&gt;ya figura como DISPONIBLE"]]
+    ELIGE[/"Elegir el animal de la lista&lt;br/&gt;filtro NO_DISPONIBLES: solo los que&lt;br/&gt;estan reservados o adoptados"/]
     I["i igual a 0"]
     COND{"i menor que la cantidad&lt;br/&gt;de solicitudes?"}
     MATCH{"La solicitud i es de este animal&lt;br/&gt;y esta PENDIENTE?"}
@@ -418,19 +450,23 @@ adoptado.</p>
     INC["i mas 1"]
     DISP["Poner el animal en estado DISPONIBLE"]
     OK[/"Mostrar: el animal volvio&lt;br/&gt;al estado DISPONIBLE"/]
-    CATCH[/"El catch del menu muestra el error"/]
+    CATCH[/"El catch del menu avisa que no hay&lt;br/&gt;nada para devolver"/]
     FIN(["Volver al menu"])
 
-    INI --&gt; ID --&gt; EXISTE
-    EXISTE --&gt;|"No"| THROW1 --&gt; CATCH --&gt; FIN
-    EXISTE --&gt;|"Si"| YADISP
-    YADISP --&gt;|"Si"| THROW2 --&gt; CATCH
-    YADISP --&gt;|"No"| I --&gt; COND
+    INI --&gt; ELIGE
+    ELIGE --&gt;|"no hay reservados&lt;br/&gt;ni adoptados"| CATCH --&gt; FIN
+    ELIGE --&gt;|"eligio uno"| I --&gt; COND
     COND --&gt;|"Si"| MATCH
     MATCH --&gt;|"Si"| CANC --&gt; INC
     MATCH --&gt;|"No"| INC
     INC --&gt; COND
     COND --&gt;|"No"| DISP --&gt; OK --&gt; FIN</pre></div>
+<blockquote>
+<p>El filtro <code>NO_DISPONIBLES</code> reemplazó al rombo de &quot;¿el animal ya figura como
+DISPONIBLE?&quot;: un animal que nunca salió del refugio <strong>no aparece en la lista</strong>, así que
+no se puede elegir para devolver. El bucle que cancela la solicitud pendiente que pudiera
+tener ese animal sigue igual, dentro de <code>Refugio::devolverAnimal()</code>.</p>
+</blockquote>
 <hr>
 <h2>Opción 11 — Ver adoptantes y solicitudes</h2>
 <p>Esta opción existe para mostrar la <strong>función genérica</strong> de la Fase 5: la misma función

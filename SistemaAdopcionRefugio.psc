@@ -6,6 +6,13 @@ Algoritmo SistemaAdopcionRefugio
 	// Pseudocodigo del menu principal y del proceso de adopcion (Fase 1).
 	// Refleja el menu final del programa en C++ (14 opciones).
 	//
+	// EL USUARIO NO ESCRIBE NINGUN ID. Los numeros existen (son la clave
+	// de cada animal, adoptante y solicitud), pero los pone el sistema:
+	//   - en las altas, con ProximoIdAnimal y ProximoIdAdoptante;
+	//   - para elegir algo que ya existe, con las funciones Elegir...,
+	//     que muestran la lista numerada de 1 a N y traducen el numero
+	//     de lista al ID interno.
+	//
 	// Las funciones que acceden a los datos estan simuladas: en el
 	// programa real son metodos de la clase Refugio, que administra el
 	// catalogo con memoria dinamica.
@@ -22,7 +29,7 @@ Algoritmo SistemaAdopcionRefugio
 		Escribir ' 3. Listar todos los animales'
 		Escribir ' 4. Listar animales disponibles'
 		Escribir ' 5. Registrar adoptante'
-		Escribir ' 6. Buscar animal por ID'
+		Escribir ' 6. Ver ficha de un animal'
 		Escribir ' 7. Crear solicitud de adopcion'
 		Escribir ' 8. Confirmar solicitud'
 		Escribir ' 9. Cancelar solicitud'
@@ -57,7 +64,7 @@ Algoritmo SistemaAdopcionRefugio
 			5:
 				RegistrarAdoptante()
 			6:
-				BuscarAnimalPorId()
+				VerFichaDeAnimal()
 			7:
 				CrearSolicitudDeAdopcion()
 			8:
@@ -93,13 +100,16 @@ FinAlgoritmo
 
 // ===================================================================
 // OPCIONES 1 Y 2 - ALTAS DE ANIMALES
+// El numero de cada animal lo pone el sistema, no el usuario.
 // ===================================================================
 
 Función RegistrarPerro
 	Definir id, edad, t Como Entero
 	Definir nombre, salud, raza, tamanio Como Cadena
 	Escribir '--- Registrar perro ---'
-	id <- LeerEnteroValidado('ID:',1,99999)
+	// El ID no se pide por teclado: es el proximo numero libre del
+	// refugio. En C++ esta linea es  refugio.nuevoIdAnimal().
+	id <- ProximoIdAnimal
 	Escribir 'Nombre:'
 	Leer nombre
 	edad <- LeerEnteroValidado('Edad (anios):',0,30)
@@ -118,21 +128,19 @@ Función RegistrarPerro
 			tamanio <- 'Grande'
 		FinSi
 	FinSi
-	// En C++ el objeto se crea con new y la memoria pasa a ser del Refugio
-	Si BuscarIndiceAnimal(id)<>-1 Entonces
-		// El Refugio libera el objeto antes de lanzar IdRepetidoException
-		Escribir 'Error: El ID ', id, ' ya esta registrado en el sistema.'
-	SiNo
-		AgregarAnimal(id,nombre,'Perro')
-		Escribir 'Perro registrado correctamente.'
-	FinSi
+	// En C++ el objeto se crea con new y la memoria pasa a ser del
+	// Refugio. Ya no hay que controlar el ID repetido antes del alta:
+	// al ponerlo el sistema nunca puede chocar con uno que ya exista
+	// (el control sigue estando dentro de agregarAnimal, como red).
+	AgregarAnimal(id,nombre,'Perro')
+	Escribir 'Perro registrado correctamente (quedo con el numero ', id, ').'
 FinFunción
 
 Función RegistrarGato
 	Definir id, edad Como Entero
 	Definir nombre, salud, color, interior Como Cadena
 	Escribir '--- Registrar gato ---'
-	id <- LeerEnteroValidado('ID:',1,99999)
+	id <- ProximoIdAnimal
 	Escribir 'Nombre:'
 	Leer nombre
 	edad <- LeerEnteroValidado('Edad (anios):',0,30)
@@ -142,12 +150,8 @@ Función RegistrarGato
 	Leer color
 	Escribir 'Vive en interior? (SI/NO):'
 	Leer interior
-	Si BuscarIndiceAnimal(id)<>-1 Entonces
-		Escribir 'Error: El ID ', id, ' ya esta registrado en el sistema.'
-	SiNo
-		AgregarAnimal(id,nombre,'Gato')
-		Escribir 'Gato registrado correctamente.'
-	FinSi
+	AgregarAnimal(id,nombre,'Gato')
+	Escribir 'Gato registrado correctamente (quedo con el numero ', id, ').'
 FinFunción
 
 // ===================================================================
@@ -191,36 +195,34 @@ Función RegistrarAdoptante
 	Definir id Como Entero
 	Definir nombre, contacto, vivienda Como Cadena
 	Escribir '--- Registrar adoptante ---'
-	id <- LeerEnteroValidado('ID:',1,99999)
+	// Igual que en las altas de animales: el numero lo pone el sistema.
+	// En C++ es  refugio.nuevoIdAdoptante().
+	id <- ProximoIdAdoptante
 	Escribir 'Nombre y apellido:'
 	Leer nombre
 	Escribir 'Contacto (telefono o mail):'
 	Leer contacto
 	Escribir 'Tipo de vivienda:'
 	Leer vivienda
-	Si BuscarIndiceAdoptante(id)<>-1 Entonces
-		Escribir 'Error: El ID ', id, ' ya esta registrado en el sistema.'
-	SiNo
-		AgregarAdoptante(id,nombre)
-		Escribir 'Adoptante registrado correctamente.'
-	FinSi
+	AgregarAdoptante(id,nombre)
+	Escribir 'Adoptante registrado correctamente (quedo con el numero ', id, ').'
 FinFunción
 
 // ===================================================================
-// OPCION 6 - BUSQUEDA POR ID
+// OPCION 6 - FICHA DE UN ANIMAL
 // ===================================================================
 
 // En C++ usa dos operadores sobrecargados: () para buscar por ID
 // y el operador unario ! para saber si el animal NO esta disponible.
-Función BuscarAnimalPorId
+// El ID que recibe el operador () sale de la lista, no del teclado.
+Función VerFichaDeAnimal
 	Definir id, idx Como Entero
-	Escribir '--- Buscar animal por ID ---'
-	id <- LeerEnteroValidado('ID a buscar:',1,99999)
-	idx <- BuscarIndiceAnimal(id)
-	Si idx=-1 Entonces
-		Escribir 'Error: No existe un animal con ID ', id, '.'
-	SiNo
-		Escribir 'Animal encontrado:'
+	Escribir '--- Ver ficha de un animal ---'
+	id <- ElegirAnimal('Animales del refugio:','TODOS')
+	Si id<>0 Entonces
+		idx <- BuscarIndiceAnimal(id)
+		Escribir ''
+		Escribir 'Ficha del animal elegido:'
 		MostrarAnimal(idx)
 		Si ObtenerEstadoAnimal(idx)<>'DISPONIBLE' Entonces
 			Escribir 'Atencion: este animal NO esta disponible para adopcion.'
@@ -235,49 +237,34 @@ FinFunción
 // ===================================================================
 
 Función CrearSolicitudDeAdopcion
-	Definir idAdoptante, idAnimal Como Entero
-	Definir idxAdoptante, idxAnimal, nro Como Entero
-	Definir estadoAnimal, deseaConfirmar Como Cadena
+	Definir idAdoptante, idAnimal, idxAnimal, nro Como Entero
+	Definir deseaConfirmar Como Cadena
 	Escribir '--- Nueva solicitud de adopcion ---'
-	// --- Verificaciones previas ---
-	Si ContarAnimalesDisponibles=0 Entonces
-		Escribir 'Error: no hay animales disponibles en este momento.'
-	SiNo
-		Si ContarAdoptantes=0 Entonces
-			Escribir 'Error: no hay adoptantes registrados (opcion 5).'
-		SiNo
-			// --- Datos de la solicitud ---
-			idAdoptante <- LeerEnteroValidado('ID del adoptante:',1,99999)
-			idAnimal <- LeerEnteroValidado('ID del animal:',1,99999)
-			idxAdoptante <- BuscarIndiceAdoptante(idAdoptante)
+	// Las funciones Elegir... avisan solas cuando no hay nada para
+	// elegir y en ese caso devuelven 0. Por eso aca ya no hacen falta
+	// las verificaciones previas ni los controles de "existe el ID",
+	// que es lo que antes hacia larga esta operacion.
+	idAdoptante <- ElegirAdoptante('Quien quiere adoptar?')
+	Si idAdoptante<>0 Entonces
+		Escribir ''
+		idAnimal <- ElegirAnimal('A que animal?','DISPONIBLES')
+		Si idAnimal<>0 Entonces
 			idxAnimal <- BuscarIndiceAnimal(idAnimal)
-			Si idxAdoptante=-1 Entonces
-				Escribir 'Error: No existe un adoptante con ID ', idAdoptante, '.'
+			// --- Alta de la solicitud y reserva del animal ---
+			nro <- CrearSolicitud(idAdoptante,idAnimal)
+			CambiarEstadoAnimal(idxAnimal,'EN_PROCESO')
+			Escribir ''
+			Escribir 'Solicitud N ', nro, ' creada en estado PENDIENTE.'
+			Escribir 'El animal quedo reservado (EN_PROCESO).'
+			// --- Confirmacion inmediata (opcional) ---
+			Escribir 'Desea confirmar la adopcion ahora? (SI/NO):'
+			Leer deseaConfirmar
+			Si Mayusculas(deseaConfirmar)='SI' O Mayusculas(deseaConfirmar)='S' Entonces
+				ActualizarEstadoSolicitud(nro,'CONFIRMADA')
+				CambiarEstadoAnimal(idxAnimal,'ADOPTADO')
+				Escribir 'Adopcion confirmada. El animal pasa a ADOPTADO.'
 			SiNo
-				Si idxAnimal=-1 Entonces
-					Escribir 'Error: No existe un animal con ID ', idAnimal, '.'
-				SiNo
-					estadoAnimal <- ObtenerEstadoAnimal(idxAnimal)
-					Si estadoAnimal<>'DISPONIBLE' Entonces
-						Escribir 'Error: El animal con ID ', idAnimal, ' no esta disponible (', estadoAnimal, ').'
-					SiNo
-						// --- Alta de la solicitud y reserva del animal ---
-						nro <- CrearSolicitud(idAdoptante,idAnimal)
-						CambiarEstadoAnimal(idxAnimal,'EN_PROCESO')
-						Escribir 'Solicitud N ', nro, ' creada en estado PENDIENTE.'
-						Escribir 'El animal quedo reservado (EN_PROCESO).'
-						// --- Confirmacion inmediata (opcional) ---
-						Escribir 'Desea confirmar la adopcion ahora? (SI/NO):'
-						Leer deseaConfirmar
-						Si Mayusculas(deseaConfirmar)='SI' O Mayusculas(deseaConfirmar)='S' Entonces
-							ActualizarEstadoSolicitud(nro,'CONFIRMADA')
-							CambiarEstadoAnimal(idxAnimal,'ADOPTADO')
-							Escribir 'Adopcion confirmada. El animal pasa a ADOPTADO.'
-						SiNo
-							Escribir 'La solicitud queda PENDIENTE y el animal sigue reservado.'
-						FinSi
-					FinSi
-				FinSi
+				Escribir 'La solicitud queda PENDIENTE y el animal sigue reservado.'
 			FinSi
 		FinSi
 	FinSi
@@ -285,46 +272,36 @@ FinFunción
 
 // ===================================================================
 // OPCIONES 8 Y 9 - CONFIRMAR Y CANCELAR SOLICITUDES
+// Las dos eligen de la lista de solicitudes PENDIENTES, que son las
+// unicas que se pueden confirmar o cancelar.
 // ===================================================================
 
 Función ConfirmarSolicitud
 	Definir nro, idx, idxAnimal Como Entero
 	Escribir '--- Confirmar solicitud ---'
-	MostrarSolicitudes()
-	nro <- LeerEnteroValidado('N de solicitud a confirmar:',1,99999)
-	idx <- BuscarIndiceSolicitud(nro)
-	Si idx=-1 Entonces
-		Escribir 'Error: No existe una solicitud con N ', nro, '.'
-	SiNo
-		Si ObtenerEstadoSolicitud(idx)<>'PENDIENTE' Entonces
-			Escribir 'Error: la solicitud N ', nro, ' ya fue ', ObtenerEstadoSolicitud(idx), '.'
-		SiNo
-			idxAnimal <- BuscarIndiceAnimal(ObtenerAnimalDeSolicitud(idx))
-			ActualizarEstadoSolicitud(nro,'CONFIRMADA')
-			CambiarEstadoAnimal(idxAnimal,'ADOPTADO')
-			Escribir 'Solicitud CONFIRMADA. El animal quedo ADOPTADO.'
-		FinSi
+	nro <- ElegirSolicitudPendiente('Solicitudes pendientes:')
+	Si nro<>0 Entonces
+		idx <- BuscarIndiceSolicitud(nro)
+		idxAnimal <- BuscarIndiceAnimal(ObtenerAnimalDeSolicitud(idx))
+		ActualizarEstadoSolicitud(nro,'CONFIRMADA')
+		CambiarEstadoAnimal(idxAnimal,'ADOPTADO')
+		Escribir ''
+		Escribir 'Solicitud CONFIRMADA. El animal quedo ADOPTADO.'
 	FinSi
 FinFunción
 
 Función CancelarSolicitud
 	Definir nro, idx, idxAnimal Como Entero
 	Escribir '--- Cancelar solicitud ---'
-	MostrarSolicitudes()
-	nro <- LeerEnteroValidado('N de solicitud a cancelar:',1,99999)
-	idx <- BuscarIndiceSolicitud(nro)
-	Si idx=-1 Entonces
-		Escribir 'Error: No existe una solicitud con N ', nro, '.'
-	SiNo
-		Si ObtenerEstadoSolicitud(idx)<>'PENDIENTE' Entonces
-			Escribir 'Error: la solicitud N ', nro, ' ya fue ', ObtenerEstadoSolicitud(idx), '.'
-		SiNo
-			idxAnimal <- BuscarIndiceAnimal(ObtenerAnimalDeSolicitud(idx))
-			ActualizarEstadoSolicitud(nro,'CANCELADA')
-			// Al cancelarse el tramite el animal vuelve a estar disponible
-			CambiarEstadoAnimal(idxAnimal,'DISPONIBLE')
-			Escribir 'Solicitud CANCELADA. El animal vuelve a estar DISPONIBLE.'
-		FinSi
+	nro <- ElegirSolicitudPendiente('Solicitudes pendientes:')
+	Si nro<>0 Entonces
+		idx <- BuscarIndiceSolicitud(nro)
+		idxAnimal <- BuscarIndiceAnimal(ObtenerAnimalDeSolicitud(idx))
+		ActualizarEstadoSolicitud(nro,'CANCELADA')
+		// Al cancelarse el tramite el animal vuelve a estar disponible
+		CambiarEstadoAnimal(idxAnimal,'DISPONIBLE')
+		Escribir ''
+		Escribir 'Solicitud CANCELADA. El animal vuelve a estar DISPONIBLE.'
 	FinSi
 FinFunción
 
@@ -335,24 +312,21 @@ FinFunción
 Función DevolverAnimal
 	Definir id, idx, i, cantSol Como Entero
 	Escribir '--- Devolver animal al refugio ---'
-	id <- LeerEnteroValidado('ID del animal:',1,99999)
-	idx <- BuscarIndiceAnimal(id)
-	Si idx=-1 Entonces
-		Escribir 'Error: No existe un animal con ID ', id, '.'
-	SiNo
-		Si ObtenerEstadoAnimal(idx)='DISPONIBLE' Entonces
-			Escribir 'Error: el animal con ID ', id, ' ya figura como DISPONIBLE.'
-		SiNo
-			// Si tenia una solicitud pendiente se cancela para no dejarla colgada
-			cantSol <- ContarSolicitudes
-			Para i<-0 Hasta cantSol-1 Con Paso 1 Hacer
-				Si ObtenerAnimalDeSolicitud(i)=id Y ObtenerEstadoSolicitud(i)='PENDIENTE' Entonces
-					ActualizarEstadoSolicitud(ObtenerNumeroDeSolicitud(i),'CANCELADA')
-				FinSi
-			FinPara
-			CambiarEstadoAnimal(idx,'DISPONIBLE')
-			Escribir 'El animal volvio al estado DISPONIBLE.'
-		FinSi
+	// Solo se ofrecen los que estan reservados o adoptados: de los que
+	// figuran DISPONIBLE no hay nada que devolver.
+	id <- ElegirAnimal('Animales reservados o adoptados:','NO_DISPONIBLES')
+	Si id<>0 Entonces
+		idx <- BuscarIndiceAnimal(id)
+		// Si tenia una solicitud pendiente se cancela para no dejarla colgada
+		cantSol <- ContarSolicitudes
+		Para i<-0 Hasta cantSol-1 Con Paso 1 Hacer
+			Si ObtenerAnimalDeSolicitud(i)=id Y ObtenerEstadoSolicitud(i)='PENDIENTE' Entonces
+				ActualizarEstadoSolicitud(ObtenerNumeroDeSolicitud(i),'CANCELADA')
+			FinSi
+		FinPara
+		CambiarEstadoAnimal(idx,'DISPONIBLE')
+		Escribir ''
+		Escribir 'El animal volvio al estado DISPONIBLE.'
 	FinSi
 FinFunción
 
@@ -446,6 +420,97 @@ Función PruebasDeIntegridad
 FinFunción
 
 // ===================================================================
+// SELECCION POR LISTA
+// Son las funciones que hacen que el usuario no tenga que escribir
+// ningun ID. Todas trabajan igual: muestran la lista numerada de 1 a N,
+// leen UN numero de esa lista y devuelven el ID interno del elemento
+// elegido. Si no hay nada para elegir avisan el motivo y devuelven 0.
+// En C++ son MenuConsola::elegirAnimal(), elegirAdoptante() y
+// elegirSolicitudPendiente().
+// ===================================================================
+
+Función id <- ElegirAnimal(titulo,filtro)
+	Definir i, cant, enLista, elegido Como Entero
+	Dimension idsDeLaLista[20]
+	cant <- ContarAnimales
+	enLista <- 0
+	Escribir titulo
+	// Primera pasada: mostrar la lista y guardar a que ID corresponde
+	// cada numero, porque el numero de lista NO es la posicion en el
+	// catalogo cuando hay un filtro aplicado.
+	Para i<-0 Hasta cant-1 Con Paso 1 Hacer
+		Si PasaElFiltro(i,filtro) Entonces
+			enLista <- enLista+1
+			idsDeLaLista[enLista] <- IdDelAnimal(i)
+			Escribir '  ', enLista, ') ', NombreDelAnimal(i), ' - ', ObtenerEstadoAnimal(i)
+		FinSi
+	FinPara
+	Si enLista=0 Entonces
+		Si filtro='DISPONIBLES' Entonces
+			Escribir 'Error: no hay animales disponibles para adoptar.'
+		SiNo
+			Si filtro='NO_DISPONIBLES' Entonces
+				Escribir 'Error: no hay animales reservados ni adoptados: no hay nada para devolver.'
+			SiNo
+				Escribir 'Error: el refugio no tiene animales cargados (opciones 1 y 2).'
+			FinSi
+		FinSi
+		id <- 0
+	SiNo
+		elegido <- LeerEnteroValidado('Elija un numero de la lista:',1,enLista)
+		id <- idsDeLaLista[elegido]
+	FinSi
+FinFunción
+
+Función id <- ElegirAdoptante(titulo)
+	Definir i, cant, elegido Como Entero
+	cant <- ContarAdoptantes
+	Si cant=0 Entonces
+		Escribir 'Error: no hay adoptantes registrados (opcion 5).'
+		id <- 0
+	SiNo
+		Escribir titulo
+		// Aca no hay filtro, asi que el numero de la lista coincide
+		// siempre con la posicion: alcanza con restarle 1.
+		Para i<-0 Hasta cant-1 Con Paso 1 Hacer
+			Escribir '  ', i+1, ') ', NombreDelAdoptante(i)
+		FinPara
+		elegido <- LeerEnteroValidado('Elija un numero de la lista:',1,cant)
+		id <- IdDelAdoptante(elegido-1)
+	FinSi
+FinFunción
+
+Función nro <- ElegirSolicitudPendiente(titulo)
+	Definir i, cant, enLista, elegido Como Entero
+	Dimension nrosDeLaLista[20]
+	cant <- ContarSolicitudes
+	enLista <- 0
+	Escribir titulo
+	Para i<-0 Hasta cant-1 Con Paso 1 Hacer
+		Si ObtenerEstadoSolicitud(i)='PENDIENTE' Entonces
+			enLista <- enLista+1
+			nrosDeLaLista[enLista] <- ObtenerNumeroDeSolicitud(i)
+			MostrarSolicitudEnLista(i,enLista)
+		FinSi
+	FinPara
+	Si enLista=0 Entonces
+		Escribir 'Error: no hay solicitudes pendientes (opcion 7).'
+		nro <- 0
+	SiNo
+		elegido <- LeerEnteroValidado('Elija un numero de la lista:',1,enLista)
+		nro <- nrosDeLaLista[elegido]
+	FinSi
+FinFunción
+
+// Un renglon de la lista de solicitudes, escrito en castellano: en vez de
+// los dos IDs se muestran el nombre del adoptante y el del animal.
+Función MostrarSolicitudEnLista(idx,numeroDeLista)
+	Definir idxAnimal Como Entero
+	idxAnimal <- BuscarIndiceAnimal(ObtenerAnimalDeSolicitud(idx))
+	Escribir '  ', numeroDeLista, ') Solicitud N ', ObtenerNumeroDeSolicitud(idx), ' | ', NombreDelAdoptanteDeSolicitud(idx), ' quiere adoptar a ', NombreDelAnimal(idxAnimal)
+FinFunción
+
+// ===================================================================
 // FUNCION AUXILIAR DE LECTURA VALIDADA
 // Todas las opciones piden los numeros con esta funcion: no se sale
 // de aca hasta que el valor sea correcto y este dentro del rango.
@@ -472,7 +537,7 @@ Función cant <- ContarAnimales
 FinFunción
 
 Función cant <- ContarAnimalesDisponibles
-	cant <- 2
+	cant <- 3
 FinFunción
 
 Función cant <- ContarAdoptantes
@@ -481,6 +546,78 @@ FinFunción
 
 Función cant <- ContarSolicitudes
 	cant <- 1
+FinFunción
+
+// --- Numeradores automaticos ---
+// Guardan cual es el proximo numero libre. En C++ son los atributos
+// proximoIdAnimal y proximoIdAdoptante del Refugio, que arrancan en 1 y
+// en 100 y se corren solos en cada alta.
+Función id <- ProximoIdAnimal
+	// Hay 4 animales cargados (IDs 1 a 4), asi que el proximo es el 5
+	id <- ContarAnimales+1
+FinFunción
+
+Función id <- ProximoIdAdoptante
+	// Los adoptantes arrancan en 100 para no confundirlos con un animal
+	id <- 100+ContarAdoptantes
+FinFunción
+
+// --- Filtro de los listados de animales ---
+// TODOS | DISPONIBLES | NO_DISPONIBLES
+Función pasa <- PasaElFiltro(idx,filtro)
+	Si filtro='DISPONIBLES' Entonces
+		pasa <- ObtenerEstadoAnimal(idx)='DISPONIBLE'
+	SiNo
+		Si filtro='NO_DISPONIBLES' Entonces
+			pasa <- ObtenerEstadoAnimal(idx)<>'DISPONIBLE'
+		SiNo
+			pasa <- Verdadero
+		FinSi
+	FinSi
+FinFunción
+
+Función idAn <- IdDelAnimal(idx)
+	// Los 4 animales de prueba tienen los IDs 1 a 4
+	idAn <- idx+1
+FinFunción
+
+Función nom <- NombreDelAnimal(idx)
+	// Los nombres de los animales que carga cargarDatosDePrueba
+	Si idx=0 Entonces
+		nom <- 'Rocky (Perro)'
+	SiNo
+		Si idx=1 Entonces
+			nom <- 'Luna (Perro)'
+		SiNo
+			Si idx=2 Entonces
+				nom <- 'Michi (Gato)'
+			SiNo
+				Si idx=3 Entonces
+					nom <- 'Nube (Gato)'
+				SiNo
+					nom <- '(animal dado de baja)'
+				FinSi
+			FinSi
+		FinSi
+	FinSi
+FinFunción
+
+Función idAd <- IdDelAdoptante(idx)
+	// Los 2 adoptantes de prueba tienen los IDs 100 y 101
+	idAd <- 100+idx
+FinFunción
+
+Función nom <- NombreDelAdoptante(idx)
+	Si idx=0 Entonces
+		nom <- 'Ana Perez'
+	SiNo
+		nom <- 'Juan Gomez'
+	FinSi
+FinFunción
+
+Función nom <- NombreDelAdoptanteDeSolicitud(idx)
+	// Traduce el ID guardado en la solicitud al nombre de la persona
+	nom <- NombreDelAdoptante(BuscarIndiceAdoptante(ObtenerAdoptanteDeSolicitud(idx)))
 FinFunción
 
 Función idx <- BuscarIndiceAnimal(idAn)
@@ -517,7 +654,13 @@ FinFunción
 
 Función est <- ObtenerEstadoAnimal(idx)
 	// DISPONIBLE | EN_PROCESO | ADOPTADO
-	est <- 'DISPONIBLE'
+	// Se simula el ultimo animal reservado, asi se pueden probar tanto
+	// la adopcion (opcion 7) como la devolucion (opcion 10).
+	Si idx=3 Entonces
+		est <- 'EN_PROCESO'
+	SiNo
+		est <- 'DISPONIBLE'
+	FinSi
 FinFunción
 
 Función est <- ObtenerEstadoSolicitud(idx)
@@ -526,7 +669,11 @@ Función est <- ObtenerEstadoSolicitud(idx)
 FinFunción
 
 Función idAn <- ObtenerAnimalDeSolicitud(idx)
-	idAn <- 1
+	idAn <- 4
+FinFunción
+
+Función idAd <- ObtenerAdoptanteDeSolicitud(idx)
+	idAd <- 100
 FinFunción
 
 Función nro <- ObtenerNumeroDeSolicitud(idx)
@@ -556,7 +703,7 @@ Función ActualizarEstadoSolicitud(nro,nuevoEstado)
 FinFunción
 
 Función MostrarAnimal(idx)
-	Escribir '  [Animal en la posicion ', idx, ' del catalogo]'
+	Escribir '  ', NombreDelAnimal(idx), ' - ', ObtenerEstadoAnimal(idx), ' [posicion ', idx, ' del catalogo]'
 FinFunción
 
 Función MostrarSolicitud(idx)
