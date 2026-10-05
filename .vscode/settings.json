@@ -1,0 +1,47 @@
+{
+    // ===================================================================
+    // Configuracion de la extension Code Runner (el boton ▶ de arriba a
+    // la derecha del editor) para ESTE proyecto.
+    //
+    // Por defecto Code Runner hace dos cosas que rompen un proyecto de
+    // varios archivos como este:
+    //   1) compila SOLO el archivo abierto, asi que al compilar main.cpp
+    //      el enlazador no encuentra MenuConsola, Refugio, Animal, etc.
+    //      y tira un monton de "undefined reference";
+    //   2) manda la salida al panel OUTPUT, que es de SOLO LECTURA: el
+    //      menu aparece pero no se puede escribir ninguna opcion.
+    //
+    // Estos tres ajustes lo arreglan: compila los .cpp del proyecto
+    // enteros y corre el programa en la TERMINAL, donde si se puede
+    // tipear. Al estar en .vscode/ valen solo para este proyecto y no
+    // afectan a los demas.
+    // ===================================================================
+
+    // Correr en la terminal integrada y no en el panel OUTPUT.
+    // Es el ajuste que hace que el menu acepte lo que se escribe.
+    "code-runner.runInTerminal": true,
+
+    // Guardar los archivos antes de compilar, para no ejecutar por error
+    // una version vieja de algo que se acaba de editar.
+    "code-runner.saveAllFilesBeforeRun": true,
+
+    // Correr siempre el proyecto completo, aunque haya texto seleccionado
+    // en el editor (si no, Code Runner intenta ejecutar solo la seleccion).
+    "code-runner.ignoreSelection": true,
+
+    // Limpiar la terminal en cada ejecucion.
+    "code-runner.clearPreviousOutput": true,
+
+    // Comando propio para C++. Se ejecuta en PowerShell, por eso los pasos
+    // se separan con ";" y no con "&&" (Windows PowerShell 5.1 no soporta
+    // "&&"), y el  if ($?)  hace que el programa arranque solo si la
+    // compilacion salio bien.
+    //
+    // La primera instruccion agrega el MinGW de CLion al PATH: NO alcanza
+    // con llamar a g++ por su ruta completa, porque su compilador interno
+    // (cc1plus.exe) necesita encontrar libssp-0.dll en esa misma carpeta y
+    // si no esta en el PATH falla sin imprimir ni un mensaje de error.
+    "code-runner.executorMap": {
+        "cpp": "$env:PATH = 'C:\\Program Files\\JetBrains\\CLion 2026.1\\bin\\mingw\\bin;' + $env:PATH; Set-Location '$workspaceRoot'; g++ -std=c++17 -Wall -Wextra -g -o refugio.exe *.cpp; if ($?) { .\\refugio.exe }"
+    }
+}

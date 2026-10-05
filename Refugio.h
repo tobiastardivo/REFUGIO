@@ -37,7 +37,14 @@ private:
     Coleccion<Adoptante> adoptantes;             // instanciacion 1 del template
     Coleccion<SolicitudAdopcion> solicitudes;    // instanciacion 2 del template
 
+    // --- Numeradores automaticos ---
+    // Guardan cual es el proximo numero libre de cada cosa. Existen para
+    // que el usuario NUNCA tenga que inventar ni recordar un ID: los IDs
+    // siguen estando (los necesitan el operator(), el operator== y las
+    // solicitudes), pero los pone el sistema.
     int proximoIdSolicitud;   // numerador automatico de solicitudes
+    int proximoIdAnimal;      // numerador automatico de animales
+    int proximoIdAdoptante;   // numerador automatico de adoptantes
 
     // --- Auxiliares privados ---
     void redimensionarCatalogo(int nuevaCapacidad);
@@ -62,6 +69,12 @@ public:
     // libera el objeto para no perder memoria.
     void agregarAnimal(Animal* nuevo);
     void registrarAdoptante(const Adoptante& nuevo);
+
+    // Le dan al menu el proximo numero libre para que arme el objeto sin
+    // preguntarselo a nadie. Son const: solo informan, el contador lo
+    // avanzan agregarAnimal() y registrarAdoptante() cuando el alta sale bien.
+    int nuevoIdAnimal() const;
+    int nuevoIdAdoptante() const;
 
     // --- Consultas ---
     // Los contadores alimentan el resumen que el menu muestra en cada vuelta.

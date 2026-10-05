@@ -14,6 +14,18 @@
 // Refugio y avisan que salio bien. Ninguna valida reglas por su cuenta:
 // si algo esta mal, el Refugio lanza y el try/catch de ejecutar() se
 // encarga. Por eso las funciones de aca no tienen if de control.
+//
+// EL USUARIO NUNCA ESCRIBE UN ID (ver el comentario de MenuConsola.h).
+// Los IDs siguen existiendo porque son la clave del modelo, pero quien
+// usa el programa no los conoce. Hay dos casos y cada uno se resuelve
+// en un solo lugar:
+//   - ALTAS (opciones 1, 2 y 5): el numero lo pone el Refugio con
+//     nuevoIdAnimal() / nuevoIdAdoptante(). Al usuario solo se le avisa
+//     con que numero quedo registrado.
+//   - ELEGIR ALGO QUE YA EXISTE (opciones 6 a 10): se muestra la lista
+//     numerada de 1 a N y se elige por posicion. Las funciones elegir*()
+//     traducen ese numero de lista al ID interno antes de llamar al
+//     Refugio, asi el modelo no se entera de que la interfaz cambio.
 // ===================================================================
 
 #include "MenuConsola.h"
@@ -105,7 +117,7 @@ void MenuConsola::ejecutarOpcion(int opcion) {
         case 3:  refugio.listarAnimales(false); break;
         case 4:  refugio.listarAnimales(true); break;
         case 5:  registrarAdoptante(); break;
-        case 6:  buscarAnimalPorId(); break;
+        case 6:  verFichaDeAnimal(); break;
         case 7:  crearSolicitud(); break;
         case 8:  confirmarSolicitud(); break;
         case 9:  cancelarSolicitud(); break;
@@ -145,7 +157,7 @@ void MenuConsola::mostrarMenu() const {
     cout << " 3. Listar todos los animales" << endl;
     cout << " 4. Listar animales disponibles" << endl;
     cout << " 5. Registrar adoptante" << endl;
-    cout << " 6. Buscar animal por ID" << endl;
+    cout << " 6. Ver ficha de un animal" << endl;
     cout << " 7. Crear solicitud de adopcion" << endl;
     cout << " 8. Confirmar solicitud" << endl;
     cout << " 9. Cancelar solicitud" << endl;
@@ -164,6 +176,181 @@ void MenuConsola::mostrarMenu() const {
 }
 
 // ===================================================================
+// SELECCION POR LISTA
+//
+// Estas funciones son las que hacen que no haya que escribir ningun ID.
+// Las tres trabajan igual, en cuatro pasos:
+//   1) cuentan cuantos elementos hay para ofrecer y, si no hay ninguno,
+//      lanzan DatoInvalidoException explicando por que (asi el usuario se
+//      entera enseguida y no despues de cargar otros datos);
+//   2) imprimen la lista numerada de 1 a N;
+//   3) leen UN numero con leerEntero(..., 1, N), que ya no deja elegir
+//      nada fuera de la lista: no hace falta validar la eleccion;
+//   4) traducen ese numero de lista al ID interno y lo devuelven.
+//
+// El paso 4 existe porque el numero de la lista NO es la posicion en el
+// catalogo: cuando hay filtro, el 1 de la lista puede ser el animal que
+// esta en la posicion 3. Por eso se vuelve a recorrer contando solo los
+// que pasan el filtro, hasta llegar al que el usuario eligio.
+// ===================================================================
+
+// --- pasaElFiltro(): decide si un animal entra en el listado ---
+// Es static porque no necesita mirar el refugio: le alcanza con el animal
+// que recibe y el filtro pedido. Separarla evita repetir el mismo  if  en
+// los tres recorridos de elegirAnimal().
+bool MenuConsola::pasaElFiltro(const Animal& animal, Filtro filtro) {
+    switch (filtro) {
+        // FASE 3: el  !  de esta linea es el operador unario sobrecargado
+        // de Animal, que significa "este animal NO esta disponible".
+        case Filtro::NO_DISPONIBLES: return !animal;
+        case Filtro::DISPONIBLES:    return animal.estaDisponible();
+        case Filtro::TODOS:          break;
+    }
+    return true;
+}
+
+// --- elegirAnimal(): muestra los animales y devuelve el ID del elegido ---
+// El filtro cambia que animales se ofrecen segun para que se este eligiendo:
+// para adoptar solo tiene sentido ver los DISPONIBLES, y para devolver solo
+// los que estan reservados o adoptados (NO_DISPONIBLES).
+int MenuConsola::elegirAnimal(const string& titulo, Filtro filtro) const {
+    int total = refugio.getCantidadAnimales();
+
+    // Paso 1: contar y avisar si no hay nada para elegir
+    int cuantos = 0;
+    for (int i = 0; i < total; i++)
+        if (pasaElFiltro(refugio[i], filtro)) cuantos++;
+
+    if (cuantos == 0) {
+        if (filtro == Filtro::DISPONIBLES)
+            throw DatoInvalidoException("no hay animales disponibles para adoptar.");
+        if (filtro == Filtro::NO_DISPONIBLES)
+            throw DatoInvalidoException("no hay animales reservados ni adoptados: "
+                                        "no hay nada para devolver.");
+        throw DatoInvalidoException("el refugio no tiene animales cargados "
+                                    "(se cargan con las opciones 1 y 2).");
+    }
+
+    // Paso 2: imprimir la lista numerada. mostrarInfo() es virtual, asi que
+    // cada renglon lo dibuja Perro o Gato segun lo que sea (polimorfismo).
+    cout << titulo << endl;
+    int numeroDeLista = 0;
+    for (int i = 0; i < total; i++) {
+        if (!pasaElFiltro(refugio[i], filtro)) continue;
+        numeroDeLista++;
+        cout << "  " << numeroDeLista << ") ";
+        refugio[i].mostrarInfo();
+    }
+
+    // Paso 3: leer la eleccion, ya acotada a los numeros de la lista
+    int elegido = leerEntero("Elija un numero de la lista: ", 1, cuantos);
+
+    // Paso 4: traducir el numero de lista al ID interno
+    numeroDeLista = 0;
+    for (int i = 0; i < total; i++) {
+        if (!pasaElFiltro(refugio[i], filtro)) continue;
+        numeroDeLista++;
+        if (numeroDeLista == elegido) return refugio[i].getId();
+    }
+
+    // No se puede llegar aca: leerEntero ya garantizo que el numero este
+    // entre 1 y la cantidad listada. La linea existe para que la funcion
+    // devuelva algo por todos los caminos posibles.
+    throw DatoInvalidoException("no se pudo identificar el animal elegido.");
+}
+
+// --- elegirAdoptante(): muestra las personas y devuelve el ID de la elegida ---
+// Aca no hay filtro, asi que el numero de la lista coincide siempre con la
+// posicion en la coleccion: alcanza con restarle 1 y no hace falta el
+// segundo recorrido que si necesita elegirAnimal().
+int MenuConsola::elegirAdoptante(const string& titulo) const {
+    const Coleccion<Adoptante>& lista = refugio.getAdoptantes();
+
+    if (lista.vacia())
+        throw DatoInvalidoException("no hay adoptantes registrados "
+                                    "(se registran con la opcion 5).");
+
+    cout << titulo << endl;
+    for (int i = 0; i < lista.cantidad(); i++) {
+        cout << "  " << (i + 1) << ") ";
+        lista[i].mostrarInfo();
+    }
+
+    int elegido = leerEntero("Elija un numero de la lista: ", 1, lista.cantidad());
+    return lista[elegido - 1].getId();      // -1: de numero de lista a posicion
+}
+
+// --- elegirSolicitudPendiente(): las opciones 8 y 9 eligen de aca ---
+// Solo ofrece las PENDIENTES porque son las unicas que se pueden confirmar
+// o cancelar: una confirmada o cancelada ya esta en un estado final. Antes
+// se listaban todas y el usuario podia elegir una cerrada, para recien
+// entonces comerse el error del Refugio.
+int MenuConsola::elegirSolicitudPendiente(const string& titulo) const {
+    const Coleccion<SolicitudAdopcion>& lista = refugio.getSolicitudes();
+
+    int cuantas = 0;
+    for (int i = 0; i < lista.cantidad(); i++)
+        if (lista[i].estaPendiente()) cuantas++;
+
+    if (cuantas == 0)
+        throw DatoInvalidoException("no hay solicitudes pendientes "
+                                    "(se crean con la opcion 7).");
+
+    cout << titulo << endl;
+    int numeroDeLista = 0;
+    for (int i = 0; i < lista.cantidad(); i++) {
+        if (!lista[i].estaPendiente()) continue;
+        numeroDeLista++;
+        mostrarSolicitud(lista[i], numeroDeLista);
+    }
+
+    int elegida = leerEntero("Elija un numero de la lista: ", 1, cuantas);
+
+    numeroDeLista = 0;
+    for (int i = 0; i < lista.cantidad(); i++) {
+        if (!lista[i].estaPendiente()) continue;
+        numeroDeLista++;
+        if (numeroDeLista == elegida) return lista[i].getId();
+    }
+
+    throw DatoInvalidoException("no se pudo identificar la solicitud elegida.");
+}
+
+// --- nombreDeAdoptante(): traduce un ID de adoptante a su nombre ---
+// La solicitud guarda IDs (ver SolicitudAdopcion.h), pero en pantalla un
+// numero no dice nada. Esta funcion es la que permite que el listado se
+// lea "Ana Perez quiere adoptar a Michi" y no "Adoptante ID: 100".
+string MenuConsola::nombreDeAdoptante(int idAdoptante) const {
+    const Coleccion<Adoptante>& lista = refugio.getAdoptantes();
+    for (int i = 0; i < lista.cantidad(); i++)
+        if (lista[i].getId() == idAdoptante)
+            return lista[i].getNombre();
+    return "(adoptante dado de baja)";
+}
+
+// --- mostrarSolicitud(): un renglon de solicitud en castellano ---
+// No se usa SolicitudAdopcion::mostrarInfo() porque esa imprime los dos
+// IDs crudos, que es justo lo que no le sirve al usuario. El operator()
+// del Refugio se llama dentro de un try propio: si por lo que fuera el
+// animal no estuviera, el listado tiene que seguir dibujandose y no
+// cortarse por la mitad.
+void MenuConsola::mostrarSolicitud(const SolicitudAdopcion& solicitud,
+                                   int numeroDeLista) const {
+    cout << "  " << numeroDeLista << ") Solicitud N " << solicitud.getId()
+         << " | " << nombreDeAdoptante(solicitud.getIdAdoptante())
+         << " quiere adoptar a ";
+
+    try {
+        Animal* animal = refugio(solicitud.getIdAnimal());
+        cout << animal->getNombre() << " (" << animal->tipo() << ")";
+    } catch (const NoEncontradoException&) {
+        cout << "(animal dado de baja)";
+    }
+
+    cout << " | Estado: " << estadoSolicitudATexto(solicitud.getEstado()) << endl;
+}
+
+// ===================================================================
 // OPCIONES DEL MENU
 // ===================================================================
 
@@ -172,9 +359,13 @@ void MenuConsola::mostrarMenu() const {
 // insistir si el dato esta mal) y arma el Perro. El tamanio se elige por
 // numero en vez de escribirlo, para que no entren variantes como "grande",
 // "GRANDE" o "grnde" que despues ensucien los listados.
+// El ID no se pide: lo da el Refugio con nuevoIdAnimal(). Antes habia que
+// escribirlo y era el unico dato que el usuario no podia saber, porque
+// tenia que acordarse de cual numero estaba libre para que el alta no
+// rebotara con IdRepetidoException.
 void MenuConsola::registrarPerro() {
     cout << "--- Registrar perro ---" << endl;
-    int id        = leerEntero("ID: ", 1, 99999);
+    int id        = refugio.nuevoIdAnimal();
     string nombre = leerTexto("Nombre: ");
     int edad      = leerEntero("Edad (anios): ", 0, 30);
     string salud  = leerTexto("Estado de salud: ");
@@ -185,9 +376,9 @@ void MenuConsola::registrarPerro() {
     string tamanio = (t == 1) ? "Pequenio" : (t == 2) ? "Mediano" : "Grande";
 
     // Se crea con new: la memoria queda a cargo del Refugio.
-    // Si el ID esta repetido, agregarAnimal() lanza la excepcion y libera el objeto.
     refugio.agregarAnimal(new Perro(id, nombre, edad, salud, raza, tamanio));
-    cout << "Perro registrado correctamente." << endl;
+    cout << "Perro registrado correctamente (quedo con el numero "
+         << id << ")." << endl;
 }
 
 // --- Opcion 2: registrar un gato ---
@@ -197,7 +388,7 @@ void MenuConsola::registrarPerro() {
 // Tambien se crea con new: la memoria pasa a ser del Refugio.
 void MenuConsola::registrarGato() {
     cout << "--- Registrar gato ---" << endl;
-    int id        = leerEntero("ID: ", 1, 99999);
+    int id        = refugio.nuevoIdAnimal();
     string nombre = leerTexto("Nombre: ");
     int edad      = leerEntero("Edad (anios): ", 0, 30);
     string salud  = leerTexto("Estado de salud: ");
@@ -205,7 +396,8 @@ void MenuConsola::registrarGato() {
     bool interior = leerSiNo("Vive en interior? (SI/NO): ");
 
     refugio.agregarAnimal(new Gato(id, nombre, edad, salud, color, interior));
-    cout << "Gato registrado correctamente." << endl;
+    cout << "Gato registrado correctamente (quedo con el numero "
+         << id << ")." << endl;
 }
 
 // --- Opcion 5: registrar un adoptante ---
@@ -213,30 +405,35 @@ void MenuConsola::registrarGato() {
 // temporal en la misma llamada y la coleccion del Refugio se guarda una
 // copia. Al terminar la funcion el temporal se destruye solo, sin que
 // nadie tenga que acordarse de liberarlo.
+// El numero de adoptante lo pone el Refugio, igual que en las altas de
+// animales, y arranca en 100 para no confundirlo con el de un animal.
 void MenuConsola::registrarAdoptante() {
     cout << "--- Registrar adoptante ---" << endl;
-    int id           = leerEntero("ID: ", 1, 99999);
+    int id           = refugio.nuevoIdAdoptante();
     string nombre    = leerTexto("Nombre y apellido: ");
     string contacto  = leerTexto("Contacto (telefono o mail): ");
     string vivienda  = leerTexto("Tipo de vivienda: ");
 
     refugio.registrarAdoptante(Adoptante(id, nombre, contacto, vivienda));
-    cout << "Adoptante registrado correctamente." << endl;
+    cout << "Adoptante registrado correctamente (quedo con el numero "
+         << id << ")." << endl;
 }
 
-// --- Opcion 6: buscar un animal por ID ---
+// --- Opcion 6: ver la ficha de un animal ---
 // Es la opcion que muestra dos operadores sobrecargados trabajando:
-//   refugio(id)   -> operator() del Refugio, busca por ID;
+//   refugio(id)    -> operator() del Refugio, busca por ID;
 //   !(*encontrado) -> operator! del Animal, "no esta disponible".
-// No hace falta comprobar que el puntero no sea nulo: si el ID no existe,
-// el operator() lanza NoEncontradoException y esta funcion ni siquiera
-// llega a la linea siguiente. Es const porque solo consulta.
-void MenuConsola::buscarAnimalPorId() const {
-    cout << "--- Buscar animal por ID ---" << endl;
-    int id = leerEntero("ID a buscar: ", 1, 99999);
+// El ID que recibe el operator() ya no lo escribe el usuario: sale de la
+// lista que muestra elegirAnimal(). Y no hace falta comprobar que el
+// puntero no sea nulo: si el ID no existiera, el operator() lanzaria
+// NoEncontradoException y esta funcion ni llegaria a la linea siguiente.
+// Es const porque solo consulta.
+void MenuConsola::verFichaDeAnimal() const {
+    cout << "--- Ver ficha de un animal ---" << endl;
+    int id = elegirAnimal("Animales del refugio:", Filtro::TODOS);
 
     Animal* encontrado = refugio(id);    // FASE 3: sobrecarga del operador ()
-    cout << "Animal encontrado:" << endl << "  ";
+    cout << endl << "Ficha del animal elegido:" << endl << "  ";
     encontrado->mostrarInfo();
 
     // FASE 3: operador unario !
@@ -247,25 +444,22 @@ void MenuConsola::buscarAnimalPorId() const {
 }
 
 // --- Opcion 7: crear una solicitud de adopcion ---
-// Los dos chequeos del principio no son reglas del negocio, son cortesia
-// con el usuario: sin ellos igual funcionaria, pero le haria escribir dos
-// IDs para recien despues avisarle que no habia con que trabajar.
+// Antes esta funcion arrancaba con dos  if  que avisaban si no habia
+// adoptantes o animales disponibles. Ya no estan porque elegirAdoptante()
+// y elegirAnimal() hacen ese mismo aviso solas: la comprobacion quedo en
+// un unico lugar en vez de repetida en cada opcion que elige algo.
 // Despues de crear la solicitud ofrece confirmarla en el acto, que es el
 // caso mas comun (la persona ya esta ahi). Si dice que no, el tramite
 // queda PENDIENTE y el animal reservado, listo para cerrarse con la
 // opcion 8 o para soltarse con la 9.
 void MenuConsola::crearSolicitud() {
     cout << "--- Nueva solicitud de adopcion ---" << endl;
-    if (refugio.contarDisponibles() == 0)
-        throw DatoInvalidoException("no hay animales disponibles en este momento.");
-    if (refugio.getCantidadAdoptantes() == 0)
-        throw DatoInvalidoException("no hay adoptantes registrados (opcion 5).");
-
-    int idAdoptante = leerEntero("ID del adoptante: ", 1, 99999);
-    int idAnimal    = leerEntero("ID del animal: ", 1, 99999);
+    int idAdoptante = elegirAdoptante("Quien quiere adoptar?");
+    cout << endl;
+    int idAnimal    = elegirAnimal("A que animal?", Filtro::DISPONIBLES);
 
     int nro = refugio.crearSolicitud(idAdoptante, idAnimal);
-    cout << "Solicitud N " << nro << " creada en estado PENDIENTE." << endl;
+    cout << endl << "Solicitud N " << nro << " creada en estado PENDIENTE." << endl;
     cout << "El animal quedo reservado (EN_PROCESO)." << endl;
 
     if (leerSiNo("Desea confirmar la adopcion ahora? (SI/NO): ")) {
@@ -277,15 +471,14 @@ void MenuConsola::crearSolicitud() {
 }
 
 // --- Opcion 8: confirmar una solicitud ---
-// Lista primero las solicitudes con la funcion generica para que el
-// usuario vea los numeros disponibles y no tenga que acordarselos.
-// La validacion de que exista y siga PENDIENTE la hace el Refugio.
+// elegirSolicitudPendiente() ya se encarga de mostrar solo las que se
+// pueden confirmar y de devolver su numero, asi que aca solo queda
+// delegar en el Refugio, que es el que aplica la regla.
 void MenuConsola::confirmarSolicitud() {
     cout << "--- Confirmar solicitud ---" << endl;
-    mostrarColeccion(refugio.getSolicitudes());
-    int nro = leerEntero("N de solicitud a confirmar: ", 1, 99999);
+    int nro = elegirSolicitudPendiente("Solicitudes pendientes:");
     refugio.confirmarSolicitud(nro);
-    cout << "Solicitud CONFIRMADA. El animal quedo ADOPTADO." << endl;
+    cout << endl << "Solicitud CONFIRMADA. El animal quedo ADOPTADO." << endl;
 }
 
 // --- Opcion 9: cancelar una solicitud ---
@@ -293,22 +486,23 @@ void MenuConsola::confirmarSolicitud() {
 // animal en vez de quedar ADOPTADO vuelve a estar DISPONIBLE.
 void MenuConsola::cancelarSolicitud() {
     cout << "--- Cancelar solicitud ---" << endl;
-    mostrarColeccion(refugio.getSolicitudes());
-    int nro = leerEntero("N de solicitud a cancelar: ", 1, 99999);
+    int nro = elegirSolicitudPendiente("Solicitudes pendientes:");
     refugio.cancelarSolicitud(nro);
-    cout << "Solicitud CANCELADA. El animal vuelve a estar DISPONIBLE." << endl;
+    cout << endl << "Solicitud CANCELADA. El animal vuelve a estar DISPONIBLE." << endl;
 }
 
 // --- Opcion 10: devolver un animal al refugio ---
-// Se pide el ID del animal y no el de la solicitud, porque quien devuelve
-// trae al animal y no se acuerda del numero de tramite. El Refugio se
-// ocupa del resto: rechaza los que ya estaban disponibles y cancela sola
-// cualquier solicitud que hubiera quedado pendiente por ese animal.
+// Se elige el animal y no la solicitud, porque quien devuelve trae al
+// animal y no tiene por que saber de que tramite salio. La lista se filtra
+// con NO_DISPONIBLES: los que figuran DISPONIBLE nunca salieron del
+// refugio, asi que de ellos no hay nada que devolver. El Refugio se ocupa
+// del resto: cancela sola cualquier solicitud que hubiera quedado
+// pendiente por ese animal.
 void MenuConsola::devolverAnimal() {
     cout << "--- Devolver animal al refugio ---" << endl;
-    int id = leerEntero("ID del animal: ", 1, 99999);
+    int id = elegirAnimal("Animales reservados o adoptados:", Filtro::NO_DISPONIBLES);
     refugio.devolverAnimal(id);
-    cout << "El animal volvio al estado DISPONIBLE." << endl;
+    cout << endl << "El animal volvio al estado DISPONIBLE." << endl;
 }
 
 // --- Opcion 11: ver adoptantes y solicitudes ---
@@ -316,6 +510,8 @@ void MenuConsola::devolverAnimal() {
 // misma linea de codigo lista dos tipos de datos que no tienen nada que
 // ver entre si. El compilador genera una version de mostrarColeccion()
 // por cada tipo usado, y lo unico que les exige es tener mostrarInfo().
+// Este listado es informativo (no se elige nada), asi que es el unico
+// lugar donde sigue teniendo sentido mostrar los datos crudos con sus IDs.
 void MenuConsola::verAdoptantesYSolicitudes() const {
     cout << "--- Adoptantes registrados ---" << endl;
     mostrarColeccion(refugio.getAdoptantes());       // T = Adoptante

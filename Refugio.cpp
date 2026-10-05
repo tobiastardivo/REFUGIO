@@ -36,7 +36,10 @@ using namespace std;
 // arranca en 1 para que la primera sea la "Solicitud N 1".
 Refugio::Refugio(const string& nombre)
     : nombre(nombre), catalogo(new Animal*[4]), cantAnimales(0), capacidad(4),
-      adoptantes(), solicitudes(), proximoIdSolicitud(1) {
+      adoptantes(), solicitudes(), proximoIdSolicitud(1),
+      proximoIdAnimal(1), proximoIdAdoptante(100) {
+    // Los animales se numeran desde 1 y los adoptantes desde 100, para que
+    // en pantalla nunca se confunda un numero con el otro.
     // Dejo los punteros en nullptr para que el arreglo no tenga basura
     for (int i = 0; i < capacidad; i++)
         catalogo[i] = nullptr;
@@ -53,7 +56,9 @@ Refugio::Refugio(const Refugio& otro)
       cantAnimales(otro.cantAnimales), capacidad(otro.capacidad),
       adoptantes(otro.adoptantes),        // Coleccion<T> ya hace su copia profunda
       solicitudes(otro.solicitudes),
-      proximoIdSolicitud(otro.proximoIdSolicitud) {
+      proximoIdSolicitud(otro.proximoIdSolicitud),
+      proximoIdAnimal(otro.proximoIdAnimal),
+      proximoIdAdoptante(otro.proximoIdAdoptante) {
     for (int i = 0; i < capacidad; i++)
         catalogo[i] = nullptr;
     for (int i = 0; i < cantAnimales; i++)
@@ -72,6 +77,8 @@ Refugio& Refugio::operator=(const Refugio& otro) {
         capacidad = otro.capacidad;
         cantAnimales = otro.cantAnimales;
         proximoIdSolicitud = otro.proximoIdSolicitud;
+        proximoIdAnimal = otro.proximoIdAnimal;        // los numeradores tambien
+        proximoIdAdoptante = otro.proximoIdAdoptante;  // viajan en la copia
 
         catalogo = new Animal*[capacidad];          // 3) memoria nueva
         for (int i = 0; i < capacidad; i++)
@@ -196,6 +203,12 @@ void Refugio::agregarAnimal(Animal* nuevo) {
 
     catalogo[cantAnimales] = nuevo;      // el Refugio pasa a ser el duenio
     cantAnimales++;
+
+    // Se corre el numerador si hizo falta. Se compara en vez de hacer un
+    // simple ++ porque los datos de prueba entran con IDs ya escritos: asi
+    // el proximo numero automatico nunca choca con uno que ya se uso.
+    if (nuevo->getId() >= proximoIdAnimal)
+        proximoIdAnimal = nuevo->getId() + 1;
 }
 
 // --- registrarAdoptante(): alta de una persona ---
@@ -207,7 +220,19 @@ void Refugio::registrarAdoptante(const Adoptante& nuevo) {
     if (buscarIndiceAdoptante(nuevo.getId()) != -1)
         throw IdRepetidoException(nuevo.getId());
     adoptantes.agregar(nuevo);           // se guarda una copia dentro de la coleccion
+
+    if (nuevo.getId() >= proximoIdAdoptante)
+        proximoIdAdoptante = nuevo.getId() + 1;
 }
+
+// --- nuevoIdAnimal() / nuevoIdAdoptante(): los numeradores automaticos ---
+// El menu los llama justo antes de construir el objeto, asi el alta no
+// necesita que el usuario invente un numero (que es lo que pasaba antes:
+// habia que acordarse de cual estaba libre para que no saltara
+// IdRepetidoException). El ID sigue siendo unico y sigue siendo la clave
+// del sistema, pero ahora es un dato interno.
+int Refugio::nuevoIdAnimal() const    { return proximoIdAnimal; }
+int Refugio::nuevoIdAdoptante() const { return proximoIdAdoptante; }
 
 // ===================================================================
 // CONSULTAS
