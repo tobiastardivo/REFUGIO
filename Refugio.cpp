@@ -304,22 +304,34 @@ void Refugio::listarConAritmeticaDePunteros() const {
 }
 
 // --- mostrarHistorialAdopciones(): listado de adopciones concretadas ---
-// Filtra las solicitudes que quedaron en CONFIRMADA y, para cada una,
-// cruza el ID del animal contra el catalogo para poder mostrar tambien
-// de que animal se trata. El  if (idx != -1)  cubre el caso de que el
-// animal ya no este: la solicitud sigue siendo parte del historial y se
-// muestra igual, pero sin el renglon del animal.
+// Filtra las solicitudes que quedaron en CONFIRMADA y, para cada una, cruza
+// los dos IDs que guarda (el del adoptante y el del animal) contra la
+// coleccion de personas y contra el catalogo, para poder escribir el
+// renglon con NOMBRES en vez de numeros: una adopcion se lee mejor como
+// "Ana Perez adopto a Rocky (Perro)" que como "Adoptante ID 100, Animal ID 1".
+// Los dos  != -1  cubren el caso de que alguno ya no este: la adopcion sigue
+// siendo parte del historial y se muestra igual, avisando lo que falta.
 void Refugio::mostrarHistorialAdopciones() const {
     cout << "--- Historial de adopciones concretadas ---" << endl;
     int cont = 0;
     for (int i = 0; i < solicitudes.cantidad(); i++) {
         if (solicitudes[i].getEstado() == EstadoSolicitud::CONFIRMADA) {
-            cout << "  ";
-            solicitudes[i].mostrarInfo();
-            int idx = buscarIndiceAnimal(solicitudes[i].getIdAnimal());
-            if (idx != -1)
-                cout << "      -> " << catalogo[idx]->tipo()
-                     << " " << catalogo[idx]->getNombre() << endl;
+            cout << "  Solicitud N " << solicitudes[i].getId() << " | ";
+
+            int idxAdoptante = buscarIndiceAdoptante(solicitudes[i].getIdAdoptante());
+            if (idxAdoptante != -1)
+                cout << adoptantes[idxAdoptante].getNombre();
+            else
+                cout << "(adoptante dado de baja)";
+
+            int idxAnimal = buscarIndiceAnimal(solicitudes[i].getIdAnimal());
+            if (idxAnimal != -1)
+                cout << " adopto a " << catalogo[idxAnimal]->getNombre()
+                     << " (" << catalogo[idxAnimal]->tipo() << ")";
+            else
+                cout << " adopto a (animal dado de baja)";
+
+            cout << endl;
             cont++;
         }
     }

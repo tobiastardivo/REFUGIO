@@ -71,10 +71,14 @@ flowchart TD
 ```
 
 > **Orden de los `catch`:** van del más específico al más general
-> (`IdRepetidoException`, `IndiceInvalidoException`, `AnimalNoDisponibleException`,
-> `NoEncontradoException`, `RefugioException`, `std::exception`). Si `std::exception`
-> estuviera primero atraparía todo y los demás nunca se ejecutarían. Todos capturan
-> **por referencia constante**.
+> (`NadaParaElegirException`, `IdRepetidoException`, `IndiceInvalidoException`,
+> `AnimalNoDisponibleException`, `NoEncontradoException`, `RefugioException`,
+> `std::exception`). Si `std::exception` estuviera primero atraparía todo y los demás nunca
+> se ejecutarían. Todos capturan **por referencia constante**.
+>
+> El primero, `NadaParaElegirException`, es el único que **no** imprime el cartel de
+> `[ERROR]`: no es una falla, es el aviso de que la opción elegida todavía no tiene datos
+> con los que trabajar (ver la subrutina de selección por lista).
 
 ---
 
@@ -120,7 +124,7 @@ flowchart TD
     INI(["Elegir de la lista: recibe el titulo<br/>y el filtro que se quiere ofrecer"])
     CUENTA["Contar cuantos elementos<br/>pasan el filtro"]
     HAY{"Hay al menos uno?"}
-    THROW[["throw DatoInvalidoException<br/>con el motivo: no hay animales<br/>disponibles, no hay adoptantes, etc."]]
+    THROW[["throw NadaParaElegirException<br/>con el aviso: no hay animales<br/>disponibles, no hay adoptantes, etc."]]
     LISTA[/"Mostrar la lista numerada de 1 a N<br/>con el nombre y el estado de cada uno"/]
     LEE[/"Leer un numero validado entre 1 y N<br/>con leerEntero: no se puede elegir<br/>nada que no este en la lista"/]
     TRAD["Recorrer otra vez contando los que pasan<br/>el filtro hasta llegar al elegido"]
@@ -139,6 +143,12 @@ flowchart TD
 >
 > Como `leerEntero()` ya acota la respuesta al rango `1..N`, **ninguna de estas rutinas
 > necesita validar la elección**: no se puede elegir algo que no exista.
+>
+> **`NadaParaElegirException` no es un error**, es un aviso: el usuario eligió una opción
+> que todavía no se puede usar. Tiene su propia clase justamente para eso — el menú la
+> captura aparte y muestra el mensaje tal cual (*"No hay solicitudes pendientes. Se crean
+> con la opción 7."*), sin el cartel de `[ERROR]` que llevan las excepciones que sí
+> indican una falla.
 
 ---
 
@@ -318,7 +328,7 @@ flowchart TD
     NOT{"El operador unario ! da verdadero?<br/>es decir: no esta disponible"}
     MSG1[/"Mostrar: este animal NO esta<br/>disponible para adopcion"/]
     MSG2[/"Mostrar: este animal esta<br/>disponible para adopcion"/]
-    CATCH[/"El catch del menu muestra el error<br/>si el refugio esta vacio"/]
+    CATCH[/"El menu avisa que el refugio<br/>todavia no tiene animales"/]
     FIN(["Volver al menu"])
 
     INI --> ELIGE
@@ -352,7 +362,7 @@ flowchart TD
     CONFIRMA["Confirmar la solicitud:<br/>solicitud CONFIRMADA y animal ADOPTADO"]
     MSG1[/"Mostrar: adopcion confirmada"/]
     MSG2[/"Mostrar: la solicitud queda PENDIENTE<br/>y el animal sigue reservado"/]
-    CATCH[/"El catch del menu muestra el motivo:<br/>no hay adoptantes o no hay<br/>animales disponibles"/]
+    CATCH[/"El menu avisa el motivo:<br/>no hay adoptantes o no hay<br/>animales disponibles"/]
     FIN(["Volver al menu"])
 
     INI --> ELAD
@@ -389,7 +399,7 @@ flowchart TD
     CONF["Marcar la solicitud como CONFIRMADA"]
     ADOPT["Poner el animal en estado ADOPTADO"]
     OK[/"Mostrar: solicitud CONFIRMADA<br/>y animal ADOPTADO"/]
-    CATCH[/"El catch del menu avisa que no hay<br/>solicitudes pendientes"/]
+    CATCH[/"El menu avisa que no hay<br/>solicitudes pendientes"/]
     FIN(["Volver al menu"])
 
     INI --> ELIGE
@@ -417,7 +427,7 @@ flowchart TD
     CANC["Marcar la solicitud como CANCELADA"]
     DISP["El animal vuelve al estado DISPONIBLE"]
     OK[/"Mostrar: solicitud CANCELADA<br/>y animal DISPONIBLE"/]
-    CATCH[/"El catch del menu avisa que no hay<br/>solicitudes pendientes"/]
+    CATCH[/"El menu avisa que no hay<br/>solicitudes pendientes"/]
     FIN(["Volver al menu"])
 
     INI --> ELIGE
@@ -440,7 +450,7 @@ flowchart TD
     INC["i mas 1"]
     DISP["Poner el animal en estado DISPONIBLE"]
     OK[/"Mostrar: el animal volvio<br/>al estado DISPONIBLE"/]
-    CATCH[/"El catch del menu avisa que no hay<br/>nada para devolver"/]
+    CATCH[/"El menu avisa que no hay<br/>nada para devolver"/]
     FIN(["Volver al menu"])
 
     INI --> ELIGE
@@ -462,8 +472,10 @@ flowchart TD
 
 ## Opción 11 — Ver adoptantes y solicitudes
 
-Esta opción existe para mostrar la **función genérica** de la Fase 5: la misma función
-`mostrarColeccion<T>()` se usa con dos tipos distintos.
+Las personas se listan con la **función genérica** `mostrarColeccion<T>()` de la Fase 5
+(con `T = Adoptante`), que las muestra por su nombre. Las solicitudes no: se dibujan con
+`mostrarSolicitud()`, que traduce los dos IDs guardados a los nombres de la persona y del
+animal, para que el renglón se pueda leer.
 
 ```mermaid
 flowchart TD
@@ -471,20 +483,24 @@ flowchart TD
     T1["Llamar a mostrarColeccion con T igual a Adoptante"]
     V1{"La coleccion esta vacia?"}
     M1[/"Mostrar: la coleccion esta vacia"/]
-    L1[/"Recorrer y mostrar cada adoptante"/]
-    T2["Llamar a mostrarColeccion con T igual a SolicitudAdopcion"]
-    V2{"La coleccion esta vacia?"}
-    M2[/"Mostrar: la coleccion esta vacia"/]
-    L2[/"Recorrer y mostrar cada solicitud"/]
+    L1[/"Recorrer y mostrar cada adoptante<br/>por su nombre"/]
+    V2{"Hay solicitudes cargadas?"}
+    M2[/"Mostrar: todavia no hay<br/>solicitudes cargadas"/]
+    L2["Recorrer las solicitudes"]
+    TRAD["Por cada una, traducir el ID del adoptante<br/>y el del animal a sus nombres"]
+    SHOW[/"Mostrar: Ana Perez quiere adoptar a Rocky<br/>y el estado del tramite"/]
     FIN(["Volver al menu"])
 
     INI --> T1 --> V1
-    V1 -->|"Si"| M1 --> T2
-    V1 -->|"No"| L1 --> T2
-    T2 --> V2
-    V2 -->|"Si"| M2 --> FIN
-    V2 -->|"No"| L2 --> FIN
+    V1 -->|"Si"| M1 --> V2
+    V1 -->|"No"| L1 --> V2
+    V2 -->|"No"| M2 --> FIN
+    V2 -->|"Si"| L2 --> TRAD --> SHOW --> FIN
 ```
+
+> **La segunda instanciación de la función genérica** (con `T = SolicitudAdopcion`), que
+> antes estaba acá, se movió a la **opción 14**: es la pantalla de datos internos, y es ahí
+> donde los IDs crudos que imprime `SolicitudAdopcion::mostrarInfo()` tienen sentido.
 
 ---
 
@@ -496,10 +512,10 @@ flowchart TD
     I["i igual a 0<br/>contador igual a 0"]
     COND{"i menor que la cantidad<br/>de solicitudes?"}
     CONF{"La solicitud i esta<br/>CONFIRMADA?"}
-    SHOW[/"Mostrar los datos de la solicitud"/]
+    SHOW[/"Mostrar el numero de solicitud y,<br/>buscando su ID, el nombre del adoptante"/]
     BUSCA["Buscar el indice del animal"]
     EXISTE{"Se encontro el animal<br/>en el catalogo?"}
-    NOM[/"Mostrar el tipo y el nombre del animal"/]
+    NOM[/"Completar el renglon: adopto a<br/>el nombre y el tipo del animal"/]
     MAS["contador mas 1"]
     INC["i mas 1"]
     VACIO{"contador es 0?"}
@@ -590,17 +606,23 @@ flowchart TD
     C2[/"Capturar NoEncontradoException"/]
     E3["PRUEBA 4c: alta con un ID ya existente"]
     C3[/"Capturar IdRepetidoException"/]
+    G1[/"PRUEBA 5: mostrarColeccion con T igual<br/>a Adoptante y despues con T igual a<br/>SolicitudAdopcion: una funcion, dos tipos"/]
     CATCH[/"El catch del menu muestra el error"/]
     FIN(["Volver al menu"])
 
     INI --> HAY
     HAY -->|"No"| THROW --> CATCH --> FIN
     HAY -->|"Si"| P1 --> P2 --> ANTES --> COPIA --> DESP --> DIR --> MOD --> VER --> DESTR --> VUELVE
-    VUELVE --> E1 --> C1 --> E2 --> C2 --> E3 --> C3 --> FIN
+    VUELVE --> E1 --> C1 --> E2 --> C2 --> E3 --> C3 --> G1 --> FIN
 ```
 
 > Cada prueba de excepción tiene su **propio `try`** dentro de la función, para que una
 > prueba no corte a la siguiente.
+>
+> La **PRUEBA 5** es la demostración de la **función genérica** de la Fase 5: la misma
+> `mostrarColeccion<T>()` lista dos tipos que no tienen nada que ver entre sí. Está acá, y
+> no en la opción 11, porque la versión de `SolicitudAdopcion` imprime los IDs internos y
+> ésta es la pantalla donde se muestran los datos de adentro del sistema.
 
 ---
 

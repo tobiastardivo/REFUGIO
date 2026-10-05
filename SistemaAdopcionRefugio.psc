@@ -447,12 +447,12 @@ Función id <- ElegirAnimal(titulo,filtro)
 	FinPara
 	Si enLista=0 Entonces
 		Si filtro='DISPONIBLES' Entonces
-			Escribir 'Error: no hay animales disponibles para adoptar.'
+			Escribir 'No hay animales disponibles para adoptar en este momento.'
 		SiNo
 			Si filtro='NO_DISPONIBLES' Entonces
-				Escribir 'Error: no hay animales reservados ni adoptados: no hay nada para devolver.'
+				Escribir 'No hay animales reservados ni adoptados, asi que no hay nada para devolver.'
 			SiNo
-				Escribir 'Error: el refugio no tiene animales cargados (opciones 1 y 2).'
+				Escribir 'El refugio todavia no tiene animales cargados. Se cargan con las opciones 1 y 2.'
 			FinSi
 		FinSi
 		id <- 0
@@ -466,7 +466,7 @@ Función id <- ElegirAdoptante(titulo)
 	Definir i, cant, elegido Como Entero
 	cant <- ContarAdoptantes
 	Si cant=0 Entonces
-		Escribir 'Error: no hay adoptantes registrados (opcion 5).'
+		Escribir 'Todavia no hay adoptantes registrados. Se registran con la opcion 5.'
 		id <- 0
 	SiNo
 		Escribir titulo
@@ -494,7 +494,7 @@ Función nro <- ElegirSolicitudPendiente(titulo)
 		FinSi
 	FinPara
 	Si enLista=0 Entonces
-		Escribir 'Error: no hay solicitudes pendientes (opcion 7).'
+		Escribir 'No hay solicitudes pendientes. Se crean con la opcion 7.'
 		nro <- 0
 	SiNo
 		elegido <- LeerEnteroValidado('Elija un numero de la lista:',1,enLista)
@@ -706,16 +706,30 @@ Función MostrarAnimal(idx)
 	Escribir '  ', NombreDelAnimal(idx), ' - ', ObtenerEstadoAnimal(idx), ' [posicion ', idx, ' del catalogo]'
 FinFunción
 
+// Un renglon del historial. Traduce los dos IDs que guarda la solicitud a
+// los nombres de la persona y del animal, igual que en C++ lo hace
+// Refugio::mostrarHistorialAdopciones().
 Función MostrarSolicitud(idx)
-	Escribir '  [Solicitud en la posicion ', idx, ' de la coleccion]'
+	Escribir '  Solicitud N ', ObtenerNumeroDeSolicitud(idx), ' | ', NombreDelAdoptanteDeSolicitud(idx), ' adopto a ', NombreDelAnimal(BuscarIndiceAnimal(ObtenerAnimalDeSolicitud(idx)))
 FinFunción
 
+// En C++ este listado lo hace la funcion generica mostrarColeccion<T>() con
+// T igual a Adoptante, que muestra a cada persona por su nombre.
 Función MostrarAdoptantes
-	Escribir '  [Listado de adoptantes con la funcion generica]'
+	Definir i Como Entero
+	Para i<-0 Hasta ContarAdoptantes-1 Con Paso 1 Hacer
+		Escribir '  ', i+1, ') ', NombreDelAdoptante(i)
+	FinPara
 FinFunción
 
+// Las solicitudes no se listan con la funcion generica: su mostrarInfo()
+// imprime los dos IDs crudos y asi no se entiende. Se usa el mismo renglon
+// en castellano que la seleccion por lista.
 Función MostrarSolicitudes
-	Escribir '  [Listado de solicitudes con la funcion generica]'
+	Definir i Como Entero
+	Para i<-0 Hasta ContarSolicitudes-1 Con Paso 1 Hacer
+		MostrarSolicitudEnLista(i,i+1)
+	FinPara
 FinFunción
 
 Función LiberarMemoriaDelRefugio

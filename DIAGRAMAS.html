@@ -143,10 +143,13 @@ se muestra el mensaje y el menú vuelve a aparecer.</p>
     ES0 --&gt;|"Si"| ANTES --&gt; DEST --&gt; DESPUES --&gt; FIN</pre></div>
 <blockquote>
 <p><strong>Orden de los <code>catch</code>:</strong> van del más específico al más general
-(<code>IdRepetidoException</code>, <code>IndiceInvalidoException</code>, <code>AnimalNoDisponibleException</code>,
-<code>NoEncontradoException</code>, <code>RefugioException</code>, <code>std::exception</code>). Si <code>std::exception</code>
-estuviera primero atraparía todo y los demás nunca se ejecutarían. Todos capturan
-<strong>por referencia constante</strong>.</p>
+(<code>NadaParaElegirException</code>, <code>IdRepetidoException</code>, <code>IndiceInvalidoException</code>,
+<code>AnimalNoDisponibleException</code>, <code>NoEncontradoException</code>, <code>RefugioException</code>,
+<code>std::exception</code>). Si <code>std::exception</code> estuviera primero atraparía todo y los demás nunca
+se ejecutarían. Todos capturan <strong>por referencia constante</strong>.</p>
+<p>El primero, <code>NadaParaElegirException</code>, es el único que <strong>no</strong> imprime el cartel de
+<code>[ERROR]</code>: no es una falla, es el aviso de que la opción elegida todavía no tiene datos
+con los que trabajar (ver la subrutina de selección por lista).</p>
 </blockquote>
 <hr>
 <h2>Subrutina auxiliar — Lectura validada por teclado</h2>
@@ -183,7 +186,7 @@ paralelogramo de &quot;Elegir ... de la lista&quot;.</p>
     INI(["Elegir de la lista: recibe el titulo&lt;br/&gt;y el filtro que se quiere ofrecer"])
     CUENTA["Contar cuantos elementos&lt;br/&gt;pasan el filtro"]
     HAY{"Hay al menos uno?"}
-    THROW[["throw DatoInvalidoException&lt;br/&gt;con el motivo: no hay animales&lt;br/&gt;disponibles, no hay adoptantes, etc."]]
+    THROW[["throw NadaParaElegirException&lt;br/&gt;con el aviso: no hay animales&lt;br/&gt;disponibles, no hay adoptantes, etc."]]
     LISTA[/"Mostrar la lista numerada de 1 a N&lt;br/&gt;con el nombre y el estado de cada uno"/]
     LEE[/"Leer un numero validado entre 1 y N&lt;br/&gt;con leerEntero: no se puede elegir&lt;br/&gt;nada que no este en la lista"/]
     TRAD["Recorrer otra vez contando los que pasan&lt;br/&gt;el filtro hasta llegar al elegido"]
@@ -200,6 +203,11 @@ aplicando el mismo filtro hasta llegar al que eligió. En <code>elegirAdoptante(
 existe, porque ahí no hay filtro y el número de lista coincide con la posición.</p>
 <p>Como <code>leerEntero()</code> ya acota la respuesta al rango <code>1..N</code>, <strong>ninguna de estas rutinas
 necesita validar la elección</strong>: no se puede elegir algo que no exista.</p>
+<p><strong><code>NadaParaElegirException</code> no es un error</strong>, es un aviso: el usuario eligió una opción
+que todavía no se puede usar. Tiene su propia clase justamente para eso — el menú la
+captura aparte y muestra el mensaje tal cual (<em>&quot;No hay solicitudes pendientes. Se crean
+con la opción 7.&quot;</em>), sin el cartel de <code>[ERROR]</code> que llevan las excepciones que sí
+indican una falla.</p>
 </blockquote>
 <hr>
 <h2>Opción 1 — Registrar perro</h2>
@@ -347,7 +355,7 @@ recibe el <code>operator()</code> sale de la lista, no del teclado.</p>
     NOT{"El operador unario ! da verdadero?&lt;br/&gt;es decir: no esta disponible"}
     MSG1[/"Mostrar: este animal NO esta&lt;br/&gt;disponible para adopcion"/]
     MSG2[/"Mostrar: este animal esta&lt;br/&gt;disponible para adopcion"/]
-    CATCH[/"El catch del menu muestra el error&lt;br/&gt;si el refugio esta vacio"/]
+    CATCH[/"El menu avisa que el refugio&lt;br/&gt;todavia no tiene animales"/]
     FIN(["Volver al menu"])
 
     INI --&gt; ELIGE
@@ -376,7 +384,7 @@ confirma la adopción en el momento.</p>
     CONFIRMA["Confirmar la solicitud:&lt;br/&gt;solicitud CONFIRMADA y animal ADOPTADO"]
     MSG1[/"Mostrar: adopcion confirmada"/]
     MSG2[/"Mostrar: la solicitud queda PENDIENTE&lt;br/&gt;y el animal sigue reservado"/]
-    CATCH[/"El catch del menu muestra el motivo:&lt;br/&gt;no hay adoptantes o no hay&lt;br/&gt;animales disponibles"/]
+    CATCH[/"El menu avisa el motivo:&lt;br/&gt;no hay adoptantes o no hay&lt;br/&gt;animales disponibles"/]
     FIN(["Volver al menu"])
 
     INI --&gt; ELAD
@@ -409,7 +417,7 @@ interfaz ya no puede provocarlas.</p>
     CONF["Marcar la solicitud como CONFIRMADA"]
     ADOPT["Poner el animal en estado ADOPTADO"]
     OK[/"Mostrar: solicitud CONFIRMADA&lt;br/&gt;y animal ADOPTADO"/]
-    CATCH[/"El catch del menu avisa que no hay&lt;br/&gt;solicitudes pendientes"/]
+    CATCH[/"El menu avisa que no hay&lt;br/&gt;solicitudes pendientes"/]
     FIN(["Volver al menu"])
 
     INI --&gt; ELIGE
@@ -432,7 +440,7 @@ adoptado.</p>
     CANC["Marcar la solicitud como CANCELADA"]
     DISP["El animal vuelve al estado DISPONIBLE"]
     OK[/"Mostrar: solicitud CANCELADA&lt;br/&gt;y animal DISPONIBLE"/]
-    CATCH[/"El catch del menu avisa que no hay&lt;br/&gt;solicitudes pendientes"/]
+    CATCH[/"El menu avisa que no hay&lt;br/&gt;solicitudes pendientes"/]
     FIN(["Volver al menu"])
 
     INI --&gt; ELIGE
@@ -450,7 +458,7 @@ adoptado.</p>
     INC["i mas 1"]
     DISP["Poner el animal en estado DISPONIBLE"]
     OK[/"Mostrar: el animal volvio&lt;br/&gt;al estado DISPONIBLE"/]
-    CATCH[/"El catch del menu avisa que no hay&lt;br/&gt;nada para devolver"/]
+    CATCH[/"El menu avisa que no hay&lt;br/&gt;nada para devolver"/]
     FIN(["Volver al menu"])
 
     INI --&gt; ELIGE
@@ -469,26 +477,33 @@ tener ese animal sigue igual, dentro de <code>Refugio::devolverAnimal()</code>.<
 </blockquote>
 <hr>
 <h2>Opción 11 — Ver adoptantes y solicitudes</h2>
-<p>Esta opción existe para mostrar la <strong>función genérica</strong> de la Fase 5: la misma función
-<code>mostrarColeccion&lt;T&gt;()</code> se usa con dos tipos distintos.</p>
+<p>Las personas se listan con la <strong>función genérica</strong> <code>mostrarColeccion&lt;T&gt;()</code> de la Fase 5
+(con <code>T = Adoptante</code>), que las muestra por su nombre. Las solicitudes no: se dibujan con
+<code>mostrarSolicitud()</code>, que traduce los dos IDs guardados a los nombres de la persona y del
+animal, para que el renglón se pueda leer.</p>
 <div class="diagrama"><pre class="mermaid">flowchart TD
     INI(["Opcion 11: Ver adoptantes y solicitudes"])
     T1["Llamar a mostrarColeccion con T igual a Adoptante"]
     V1{"La coleccion esta vacia?"}
     M1[/"Mostrar: la coleccion esta vacia"/]
-    L1[/"Recorrer y mostrar cada adoptante"/]
-    T2["Llamar a mostrarColeccion con T igual a SolicitudAdopcion"]
-    V2{"La coleccion esta vacia?"}
-    M2[/"Mostrar: la coleccion esta vacia"/]
-    L2[/"Recorrer y mostrar cada solicitud"/]
+    L1[/"Recorrer y mostrar cada adoptante&lt;br/&gt;por su nombre"/]
+    V2{"Hay solicitudes cargadas?"}
+    M2[/"Mostrar: todavia no hay&lt;br/&gt;solicitudes cargadas"/]
+    L2["Recorrer las solicitudes"]
+    TRAD["Por cada una, traducir el ID del adoptante&lt;br/&gt;y el del animal a sus nombres"]
+    SHOW[/"Mostrar: Ana Perez quiere adoptar a Rocky&lt;br/&gt;y el estado del tramite"/]
     FIN(["Volver al menu"])
 
     INI --&gt; T1 --&gt; V1
-    V1 --&gt;|"Si"| M1 --&gt; T2
-    V1 --&gt;|"No"| L1 --&gt; T2
-    T2 --&gt; V2
-    V2 --&gt;|"Si"| M2 --&gt; FIN
-    V2 --&gt;|"No"| L2 --&gt; FIN</pre></div>
+    V1 --&gt;|"Si"| M1 --&gt; V2
+    V1 --&gt;|"No"| L1 --&gt; V2
+    V2 --&gt;|"No"| M2 --&gt; FIN
+    V2 --&gt;|"Si"| L2 --&gt; TRAD --&gt; SHOW --&gt; FIN</pre></div>
+<blockquote>
+<p><strong>La segunda instanciación de la función genérica</strong> (con <code>T = SolicitudAdopcion</code>), que
+antes estaba acá, se movió a la <strong>opción 14</strong>: es la pantalla de datos internos, y es ahí
+donde los IDs crudos que imprime <code>SolicitudAdopcion::mostrarInfo()</code> tienen sentido.</p>
+</blockquote>
 <hr>
 <h2>Opción 12 — Historial de adopciones</h2>
 <div class="diagrama"><pre class="mermaid">flowchart TD
@@ -496,10 +511,10 @@ tener ese animal sigue igual, dentro de <code>Refugio::devolverAnimal()</code>.<
     I["i igual a 0&lt;br/&gt;contador igual a 0"]
     COND{"i menor que la cantidad&lt;br/&gt;de solicitudes?"}
     CONF{"La solicitud i esta&lt;br/&gt;CONFIRMADA?"}
-    SHOW[/"Mostrar los datos de la solicitud"/]
+    SHOW[/"Mostrar el numero de solicitud y,&lt;br/&gt;buscando su ID, el nombre del adoptante"/]
     BUSCA["Buscar el indice del animal"]
     EXISTE{"Se encontro el animal&lt;br/&gt;en el catalogo?"}
-    NOM[/"Mostrar el tipo y el nombre del animal"/]
+    NOM[/"Completar el renglon: adopto a&lt;br/&gt;el nombre y el tipo del animal"/]
     MAS["contador mas 1"]
     INC["i mas 1"]
     VACIO{"contador es 0?"}
@@ -579,16 +594,21 @@ copia profunda, liberación de memoria y excepciones.</p>
     C2[/"Capturar NoEncontradoException"/]
     E3["PRUEBA 4c: alta con un ID ya existente"]
     C3[/"Capturar IdRepetidoException"/]
+    G1[/"PRUEBA 5: mostrarColeccion con T igual&lt;br/&gt;a Adoptante y despues con T igual a&lt;br/&gt;SolicitudAdopcion: una funcion, dos tipos"/]
     CATCH[/"El catch del menu muestra el error"/]
     FIN(["Volver al menu"])
 
     INI --&gt; HAY
     HAY --&gt;|"No"| THROW --&gt; CATCH --&gt; FIN
     HAY --&gt;|"Si"| P1 --&gt; P2 --&gt; ANTES --&gt; COPIA --&gt; DESP --&gt; DIR --&gt; MOD --&gt; VER --&gt; DESTR --&gt; VUELVE
-    VUELVE --&gt; E1 --&gt; C1 --&gt; E2 --&gt; C2 --&gt; E3 --&gt; C3 --&gt; FIN</pre></div>
+    VUELVE --&gt; E1 --&gt; C1 --&gt; E2 --&gt; C2 --&gt; E3 --&gt; C3 --&gt; G1 --&gt; FIN</pre></div>
 <blockquote>
 <p>Cada prueba de excepción tiene su <strong>propio <code>try</code></strong> dentro de la función, para que una
 prueba no corte a la siguiente.</p>
+<p>La <strong>PRUEBA 5</strong> es la demostración de la <strong>función genérica</strong> de la Fase 5: la misma
+<code>mostrarColeccion&lt;T&gt;()</code> lista dos tipos que no tienen nada que ver entre sí. Está acá, y
+no en la opción 11, porque la versión de <code>SolicitudAdopcion</code> imprime los IDs internos y
+ésta es la pantalla donde se muestran los datos de adentro del sistema.</p>
 </blockquote>
 <hr>
 <h2>Opción 0 — Salir del sistema</h2>

@@ -63,7 +63,7 @@ frágil ante cualquier cambio.
 | `SolicitudAdopcion.h/.cpp` | Relaciona adoptante y animal; estados PENDIENTE / CONFIRMADA / CANCELADA. |
 | `Refugio.h/.cpp` | Clase central: catálogo dinámico, altas, búsquedas, proceso de adopción e informes. |
 | `Coleccion.h` | **Clase genérica** `Coleccion<T>` con arreglo dinámico y miembro estático. |
-| `Excepciones.h` | Excepciones personalizadas derivadas de `std::exception`. |
+| `Excepciones.h` | Excepciones personalizadas derivadas de `std::exception`, incluido el aviso `NadaParaElegirException`. |
 | `Utilidades.h/.cpp` | Lectura validada por teclado y la **función genérica** `mostrarColeccion<T>()`. |
 | `Makefile` | Compilación alternativa por línea de comandos. |
 | `DIAGRAMAS.md` | Diagramas de flujo de cada opción del menú (fuente en Mermaid). |
@@ -134,7 +134,23 @@ tiene por qué conocerlos ni acordarse de ellos. Se resuelve de dos maneras:
 Cada lista ofrece **sólo lo que tiene sentido elegir** en ese momento: para adoptar
 aparecen únicamente los animales `DISPONIBLE`, para devolver sólo los que están reservados
 o adoptados, y para confirmar o cancelar sólo las solicitudes `PENDIENTE`. Si no hay nada
-que ofrecer, la lista avisa el motivo antes de pedir cualquier otro dato.
+que ofrecer, la lista avisa el motivo antes de pedir cualquier otro dato, y lo hace como un
+**aviso y no como un error**: se lee *"No hay solicitudes pendientes. Se crean con la
+opción 7."*, sin ningún cartel de `[ERROR]` adelante, porque el usuario no hizo nada mal.
+Para eso existe `NadaParaElegirException`, que es la única excepción que el menú captura
+aparte para imprimir el mensaje tal cual.
+
+### Las personas y los animales se identifican por su nombre
+
+Lo mismo vale para lo que el programa **muestra**: en ningún listado aparece el ID de un
+adoptante. Las personas se listan por nombre, y las solicitudes, que por dentro guardan
+dos IDs, se escriben traducidas: *"Solicitud N 1 | Ana Perez quiere adoptar a Rocky
+(Perro)"*. El historial de adopciones (opción 12) hace lo mismo cruzando los dos IDs contra
+la colección de personas y el catálogo.
+
+Los IDs crudos quedan a la vista en un solo lugar a propósito: la **opción 14**, que es la
+pantalla de datos internos del sistema, donde se demuestran los operadores, la copia
+profunda y la función genérica.
 
 Como `leerEntero()` ya acota la respuesta al rango `1..N`, el usuario **no puede elegir
 algo que no exista**. Las validaciones del modelo (`IdRepetidoException`,
@@ -236,7 +252,7 @@ Reglas que sigue el proyecto:
 | 4 | Composición | `Refugio` contiene animales, adoptantes y solicitudes |
 | 5 | Clase genérica instanciada con dos tipos | `Coleccion<Adoptante>` y `Coleccion<SolicitudAdopcion>` |
 | 5 | Miembro estático en la clase genérica | `Coleccion<T>::coleccionesCreadas` (opción 13) |
-| 5 | Función genérica usada con dos tipos | `mostrarColeccion<T>()` (opción 11) |
+| 5 | Función genérica usada con dos tipos | `mostrarColeccion<T>()` (opción 14, PRUEBA 5) |
 | 5 | `try` / `throw` / `catch` múltiples, captura por `const&` | `MenuConsola.cpp`, `Excepciones.h` |
 
 ### Sobre el miembro estático de la clase genérica
@@ -260,6 +276,7 @@ independientes. Esto se ve en pantalla en la opción 13 (*Informes y estadístic
 | 4a | Índice inválido | Captura `IndiceInvalidoException` y el menú sigue |
 | 4b | ID inexistente | Captura `NoEncontradoException` |
 | 4c | ID repetido | Captura `IdRepetidoException` |
+| 5 | **Función genérica** con dos tipos | `mostrarColeccion<T>()` lista los adoptantes y después las solicitudes: una sola función, dos instanciaciones |
 
 ### Pruebas manuales sugeridas
 
@@ -270,10 +287,10 @@ independientes. Esto se ve en pantalla en la opción 13 (*Informes y estadístic
 | 3 | Opción 7 → elegir el adoptante 1 y el animal 1, responder NO | Solicitud PENDIENTE y animal EN_PROCESO |
 | 4 | Opción 7 otra vez | Ese animal **ya no aparece** en la lista: está reservado |
 | 5 | Opción 8 → confirmar la solicitud de la lista | Solicitud CONFIRMADA y animal ADOPTADO |
-| 6 | Opción 8 otra vez | Error: *no hay solicitudes pendientes* (la confirmada no se ofrece) |
+| 6 | Opción 8 otra vez | Aviso (sin cartel de error): *No hay solicitudes pendientes*. La confirmada no se ofrece |
 | 7 | Opción 12 | El historial muestra la adopción con el nombre del animal |
 | 8 | Opción 10 → elegir el animal adoptado | Vuelve a DISPONIBLE |
-| 9 | Opción 10 otra vez | Error: *no hay animales reservados ni adoptados* |
+| 9 | Opción 10 otra vez | Aviso: *No hay animales reservados ni adoptados* |
 | 10 | Opción 6 → elegir cualquier animal | Muestra la ficha y si está disponible o no |
 | 11 | Opción 0 | *Animales en memoria DESPUÉS de destruir el refugio: 0* |
 
@@ -296,8 +313,8 @@ del programa principal y los de las dos subrutinas auxiliares.
 | Opción 6 | Ver ficha de un animal (operadores `()` y `!`) |
 | Opción 7 | Crear solicitud de adopción (proceso completo) |
 | Opciones 8, 9 y 10 | Confirmar / cancelar solicitud y devolver animal |
-| Opciones 11, 12 y 13 | Listados con la función genérica, historial e informes |
-| Opción 14 | Pruebas de copia profunda, operadores y excepciones |
+| Opciones 11, 12 y 13 | Listados por nombre, historial e informes |
+| Opción 14 | Pruebas de copia profunda, operadores, excepciones y función genérica |
 | Opción 0 | Salida del sistema y liberación de la memoria |
 
 El pseudocódigo está en `SistemaAdopcionRefugio.psc` (PSeInt) y acompaña a los diagramas:

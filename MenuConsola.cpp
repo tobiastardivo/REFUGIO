@@ -82,6 +82,14 @@ void MenuConsola::ejecutar() {
         // --- MULTIPLES CATCH, siempre por REFERENCIA CONSTANTE ---
         // Del mas especifico al mas general: si se pusiera primero
         // std::exception, atraparia todo y los demas nunca se usarian.
+        //
+        // Este primero es el aviso de "no hay nada para elegir". No es un
+        // error, asi que se imprime el mensaje solo, sin el cartel de
+        // [ERROR]: para el usuario no hubo ninguna falla, simplemente
+        // todavia no hay datos con los que trabajar.
+        catch (const NadaParaElegirException& e) {
+            cout << e.what() << endl;
+        }
         catch (const IdRepetidoException& e) {
             cout << "[ERROR - ID repetido] " << e.what() << endl;
         }
@@ -223,12 +231,13 @@ int MenuConsola::elegirAnimal(const string& titulo, Filtro filtro) const {
 
     if (cuantos == 0) {
         if (filtro == Filtro::DISPONIBLES)
-            throw DatoInvalidoException("no hay animales disponibles para adoptar.");
+            throw NadaParaElegirException("No hay animales disponibles para adoptar "
+                                          "en este momento.");
         if (filtro == Filtro::NO_DISPONIBLES)
-            throw DatoInvalidoException("no hay animales reservados ni adoptados: "
-                                        "no hay nada para devolver.");
-        throw DatoInvalidoException("el refugio no tiene animales cargados "
-                                    "(se cargan con las opciones 1 y 2).");
+            throw NadaParaElegirException("No hay animales reservados ni adoptados, "
+                                          "asi que no hay nada para devolver.");
+        throw NadaParaElegirException("El refugio todavia no tiene animales cargados. "
+                                      "Se cargan con las opciones 1 y 2.");
     }
 
     // Paso 2: imprimir la lista numerada. mostrarInfo() es virtual, asi que
@@ -267,8 +276,8 @@ int MenuConsola::elegirAdoptante(const string& titulo) const {
     const Coleccion<Adoptante>& lista = refugio.getAdoptantes();
 
     if (lista.vacia())
-        throw DatoInvalidoException("no hay adoptantes registrados "
-                                    "(se registran con la opcion 5).");
+        throw NadaParaElegirException("Todavia no hay adoptantes registrados. "
+                                      "Se registran con la opcion 5.");
 
     cout << titulo << endl;
     for (int i = 0; i < lista.cantidad(); i++) {
@@ -293,8 +302,8 @@ int MenuConsola::elegirSolicitudPendiente(const string& titulo) const {
         if (lista[i].estaPendiente()) cuantas++;
 
     if (cuantas == 0)
-        throw DatoInvalidoException("no hay solicitudes pendientes "
-                                    "(se crean con la opcion 7).");
+        throw NadaParaElegirException("No hay solicitudes pendientes. "
+                                      "Se crean con la opcion 7.");
 
     cout << titulo << endl;
     int numeroDeLista = 0;
@@ -506,18 +515,28 @@ void MenuConsola::devolverAnimal() {
 }
 
 // --- Opcion 11: ver adoptantes y solicitudes ---
-// Es la demostracion mas directa de la FUNCION GENERICA de la Fase 5: la
-// misma linea de codigo lista dos tipos de datos que no tienen nada que
-// ver entre si. El compilador genera una version de mostrarColeccion()
-// por cada tipo usado, y lo unico que les exige es tener mostrarInfo().
-// Este listado es informativo (no se elige nada), asi que es el unico
-// lugar donde sigue teniendo sentido mostrar los datos crudos con sus IDs.
+// Las personas se listan con la FUNCION GENERICA de la Fase 5 (T = Adoptante),
+// que ya las muestra por su nombre.
+//
+// Las solicitudes NO: se dibujan con mostrarSolicitud(), porque el
+// mostrarInfo() de SolicitudAdopcion imprime los dos IDs que guarda adentro
+// ("Adoptante ID: 100 | Animal ID: 3") y eso no se entiende leyendolo. Aca se
+// traducen esos numeros a los nombres de la persona y del animal.
+// La segunda instanciacion de la funcion generica, con T = SolicitudAdopcion,
+// quedo en la opcion 14, que es la pantalla donde se muestran los datos
+// internos del sistema y donde esos IDs si tienen sentido.
 void MenuConsola::verAdoptantesYSolicitudes() const {
     cout << "--- Adoptantes registrados ---" << endl;
     mostrarColeccion(refugio.getAdoptantes());       // T = Adoptante
 
     cout << endl << "--- Solicitudes de adopcion ---" << endl;
-    mostrarColeccion(refugio.getSolicitudes());      // T = SolicitudAdopcion
+    const Coleccion<SolicitudAdopcion>& lista = refugio.getSolicitudes();
+    if (lista.vacia()) {
+        cout << "(Todavia no hay solicitudes cargadas)" << endl;
+        return;
+    }
+    for (int i = 0; i < lista.cantidad(); i++)
+        mostrarSolicitud(lista[i], i + 1);
 }
 
 // ===================================================================
@@ -611,6 +630,22 @@ void MenuConsola::pruebasDeIntegridad() {
     } catch (const IdRepetidoException& e) {
         cout << "   Capturada -> " << e.what() << endl;
     }
+
+    linea('=');
+    cout << "PRUEBA 5: la FUNCION GENERICA con dos tipos distintos (Fase 5)" << endl;
+    linea('-');
+    // La misma funcion, mostrarColeccion<T>(), lista dos tipos que no tienen
+    // nada que ver entre si: el compilador genera una version por cada uno y
+    // lo unico que les exige es tener un mostrarInfo(). Se demuestra aca, en
+    // la pantalla de datos internos, porque la version de SolicitudAdopcion
+    // imprime los IDs crudos que el sistema usa por dentro.
+    cout << "mostrarColeccion<Adoptante>:" << endl;
+    mostrarColeccion(refugio.getAdoptantes());
+
+    cout << "mostrarColeccion<SolicitudAdopcion>:" << endl;
+    mostrarColeccion(refugio.getSolicitudes());
+    cout << "-> Una sola funcion, dos instanciaciones generadas por el compilador."
+         << endl;
 
     linea('=');
     cout << "Fin de las pruebas. El menu sigue funcionando normalmente." << endl;

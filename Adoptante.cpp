@@ -71,9 +71,13 @@ string Adoptante::getTipoVivienda() const  { return tipoVivienda; }
 // generica mostrarColeccion<T>() de Utilidades.h llama a mostrarInfo()
 // sobre cualquier T, asi que alcanza con que la clase tenga este metodo
 // para que pueda listarse con el mismo codigo que las solicitudes.
+//
+// NO se imprime el id, a proposito: es un dato interno del sistema (lo usan
+// el operator== y las solicitudes) y a quien usa el programa no le dice
+// nada, porque elige a la persona por su nombre en la lista. La persona se
+// identifica en pantalla por el nombre; el numero queda adentro.
 void Adoptante::mostrarInfo() const {
-    cout << "ID: " << id
-         << " | Nombre: " << nombre
+    cout << nombre
          << " | Contacto: " << contacto
          << " | Vivienda: " << tipoVivienda << endl;
 }

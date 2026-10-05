@@ -60,4 +60,17 @@ public:
         : RefugioException("Dato invalido: " + detalle) {}
 };
 
+// Se lanza cuando una opcion del menu no tiene nada que ofrecer para elegir:
+// no hay animales disponibles, no hay adoptantes cargados, no hay solicitudes
+// pendientes. Tiene su propia clase porque NO es un error de nadie, es un
+// AVISO: el usuario eligio una opcion que todavia no se puede usar.
+// Por eso el menu la captura aparte y muestra el mensaje tal cual, sin el
+// cartel de [ERROR] que llevan las demas, y por eso el texto se pasa
+// completo en vez de anteponerle un prefijo.
+class NadaParaElegirException : public RefugioException {
+public:
+    explicit NadaParaElegirException(const std::string& aviso)
+        : RefugioException(aviso) {}
+};
+
 #endif //EXCEPCIONES_H
