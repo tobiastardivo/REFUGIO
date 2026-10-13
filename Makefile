@@ -14,6 +14,16 @@ CXXFLAGS = -std=c++17 -Wall -Wextra -g
 OBJS     = main.o MenuConsola.o Animal.o Perro.o Gato.o Adoptante.o SolicitudAdopcion.o Refugio.o Utilidades.o
 TARGET   = refugio.exe
 
+# Para borrar hace falta un comando distinto segun el sistema: en Windows el
+# make corre sobre cmd, que no tiene rm.
+ifeq ($(OS),Windows_NT)
+BORRAR = del /Q
+SILENCIAR = 2>NUL
+else
+BORRAR = rm -f
+SILENCIAR =
+endif
+
 all: $(TARGET)
 
 $(TARGET): $(OBJS)
@@ -33,7 +43,9 @@ Utilidades.o:        Utilidades.cpp Utilidades.h Coleccion.h
 %.o: %.cpp
 	$(CXX) $(CXXFLAGS) -c $< -o $@
 
+# El guion adelante hace que make siga adelante si alguno de los archivos
+# ya no estaba.
 clean:
-	rm -f $(OBJS) $(TARGET)
+	-$(BORRAR) $(OBJS) $(TARGET) $(SILENCIAR)
 
 .PHONY: all clean

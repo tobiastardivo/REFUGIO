@@ -3,32 +3,24 @@
 
 #include "Animal.h"
 
-// ===================================================================
-// FASE 4 - Perro hereda publicamente de Animal.
-// Agrega los atributos propios (raza y tamanio) y redefine (override)
-// las funciones virtuales puras de la clase base.
-// ===================================================================
-
 class Perro : public Animal {
 private:
     std::string raza;
-    std::string tamanio;   // "Pequenio", "Mediano", "Grande"
+    std::string tamanio;
 
 public:
-    // Constructores: delegan en los de Animal la parte comun
     Perro();
     Perro(int id, const std::string& nombre, int edad, const std::string& estadoSalud,
           const std::string& raza, const std::string& tamanio);
-    Perro(const Perro& otro);      // de copia: llama al de Animal y copia lo propio
-    ~Perro() override;             // se ejecuta antes de ~Animal()
+    Perro(const Perro& otro);
+    ~Perro() override;
 
     std::string getRaza() const;
     std::string getTamanio() const;
 
-    // --- Redefiniciones polimorficas ---
-    void mostrarInfo() const override;   // ligadura dinamica: se resuelve en ejecucion
+    void mostrarInfo() const override;
     std::string tipo() const override;
-    Animal* clonar() const override;     // devuelve un Perro nuevo en memoria dinamica
+    Animal* clonar() const override;
 };
 
-#endif //PERRO_H
+#endif

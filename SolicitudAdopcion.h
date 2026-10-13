@@ -3,20 +3,13 @@
 
 #include <string>
 
-// ===================================================================
-// FASE 2 / FASE 4 (composicion)
-// SolicitudAdopcion relaciona un adoptante con un animal y registra
-// en que estado esta el tramite. Guarda los IDs (no los objetos) para
-// no duplicar informacion ni quedarse con punteros colgados.
-// ===================================================================
-
 enum class EstadoSolicitud { PENDIENTE, CONFIRMADA, CANCELADA };
 
 std::string estadoSolicitudATexto(EstadoSolicitud estado);
 
 class SolicitudAdopcion {
 private:
-    int id;             // numero de solicitud
+    int id;
     int idAdoptante;
     int idAnimal;
     EstadoSolicitud estado;
@@ -33,12 +26,12 @@ public:
     int getIdAnimal() const;
     EstadoSolicitud getEstado() const;
 
-    void confirmar();     // PENDIENTE -> CONFIRMADA
-    void cancelar();      // PENDIENTE -> CANCELADA
+    void confirmar();
+    void cancelar();
     bool estaPendiente() const;
 
-    void mostrarInfo() const;                             // usada por la funcion generica
-    bool operator==(const SolicitudAdopcion& otra) const; // compara por numero de solicitud
+    void mostrarInfo() const;
+    bool operator==(const SolicitudAdopcion& otra) const;
 };
 
-#endif //SOLICITUDADOPCION_H
+#endif

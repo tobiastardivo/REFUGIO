@@ -3,15 +3,10 @@
 
 #include "Animal.h"
 
-// ===================================================================
-// FASE 4 - Gato hereda publicamente de Animal.
-// Agrega color de pelaje y si vive en interior o exterior.
-// ===================================================================
-
 class Gato : public Animal {
 private:
     std::string colorPelaje;
-    bool esDeInterior;     // true = vive dentro de la casa, false = exterior
+    bool esDeInterior;
 
 public:
     Gato();
@@ -23,10 +18,9 @@ public:
     std::string getColorPelaje() const;
     bool getEsDeInterior() const;
 
-    // --- Redefiniciones polimorficas ---
     void mostrarInfo() const override;
     std::string tipo() const override;
     Animal* clonar() const override;
 };
 
-#endif //GATO_H
+#endif
